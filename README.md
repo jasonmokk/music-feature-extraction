@@ -25,21 +25,40 @@ music-feature-extraction/
 
 ## **Installation**
 
-1. **Clone the Repository (or a fork)**:
+1. **Install Python 3.12**:
+   If Python 3.12 is not installed, download and install it:
+   - On macOS/Linux:
+     ```bash
+     brew install python@3.12
+     ```
+   - On Windows:
+     Download the installer from [python.org](https://www.python.org/downloads/) and follow the instructions.
+
+2. **Clone the Repository**:
    ```bash
    git clone https://github.com/your-username/music-feature-extraction.git
    cd music-feature-extraction
    ```
 
-2. **Set Up the Environment**:
+3. **Create a Virtual Environment with Python 3.12**:
    - Create a virtual environment:
      ```bash
-     python3 -m venv venv
-     source venv/bin/activate  # Activate the environment
+     python3.12 -m venv venv
      ```
-   - Install dependencies:
+   - Activate the environment:
+     - On macOS/Linux:
+       ```bash
+       source venv/bin/activate
+       ```
+     - On Windows:
+       ```cmd
+       venv\Scripts\activate
+       ```
+
+4. **Install Dependencies**:
+   - Install the necessary packages:
      ```bash
-     pip install -r requirements.txt
+     pip install librosa numpy matplotlib soundfile
      ```
 ---
 
