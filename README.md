@@ -20,13 +20,12 @@ music-feature-extraction/
 - **Librosa**: General-purpose music feature extraction.
 - **Essentia**: Advanced high-level and low-level feature extraction.
 - **Aubio**: Lightweight and efficient for tempo and beat detection.
-- **pyYAAFE**: Focused on low-level features like MFCCs and ZCR.
 
 ---
 
 ## **Installation**
 
-1. **Clone the Repository**:
+1. **Clone the Repository (or a fork)**:
    ```bash
    git clone https://github.com/your-username/music-feature-extraction.git
    cd music-feature-extraction
@@ -85,9 +84,6 @@ Each script corresponds to a specific tool. For example:
   ```
 
 Extracted features will be saved as `.csv` files in the `results/` directory.
-
-### **3. Analyze Results**
-Open the Jupyter notebooks in the `notebooks/` directory to analyze and compare the extracted features.
 
 ---
 
