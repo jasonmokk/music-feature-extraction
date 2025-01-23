@@ -12,22 +12,15 @@ os.makedirs(RESULTS_DIR, exist_ok=True)
 
 def extract_features(file_path):
     try:
+        # Load audio
         y, sr = librosa.load(file_path, sr=None)
 
+        # Dic for storing features
         features = {"filename": os.path.basename(file_path)}
 
         # Tempo and Beat
         tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
         features['tempo'] = tempo
-
-        # Energy
-        rms = librosa.feature.rms(y=y)
-        features['rms_energy'] = np.mean(rms)
-
-        # Harmonic and Percussive Energy
-        harmonic, percussive = librosa.effects.hpss(y)
-        features['harmonic_energy'] = np.mean(harmonic)
-        features['percussive_energy'] = np.mean(percussive)
 
         return features
     except Exception as e:
