@@ -8,7 +8,7 @@ This repository houses the workflow for extracting audio features for music file
 
 ```
 music-feature-extraction/
-├── data/             # Input directory for audio files (e.g., .mp3, .wav)
+├── data/             # Input directory for audio mp3 files 
 ├── scripts/          # Python scripts for feature extraction
 ├── results/          # Output directory for extracted features (e.g., .csv)
 └── README.md         # Documentation for the project
