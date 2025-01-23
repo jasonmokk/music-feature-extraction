@@ -11,7 +11,6 @@ music-feature-extraction/
 ├── data/             # Input directory for audio files (e.g., .mp3, .wav)
 ├── scripts/          # Python scripts for feature extraction
 ├── results/          # Output directory for extracted features (e.g., .csv)
-├── notebooks/        # Jupyter notebooks for analysis and exploration
 └── README.md         # Documentation for the project
 ```
 
