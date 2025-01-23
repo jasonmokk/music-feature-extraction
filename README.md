@@ -1,6 +1,6 @@
-# **Music Feature Extraction Repository**
+# **Music Feature Extraction**
 
-This repository is designed to extract audio features for music files, focusing on replicating Spotify-like attributes such as tempo, energy, loudness, and more. It provides scripts for using various tools like Librosa, Essentia, Aubio, and pyYAAFE, enabling detailed music analysis.
+This repository houses the workflow for extracting audio features for music files, focusing on replicating Spotify-like attributes such as tempo, energy, loudness, and more. Currently provides scripts for using Librosa and Essentia, more to come soon.
 
 ---
 
