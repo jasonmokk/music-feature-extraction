@@ -58,7 +58,7 @@ music-feature-extraction/
 4. **Install Dependencies**:
    - Install the necessary packages:
      ```bash
-     pip install librosa numpy matplotlib soundfile
+     pip install librosa essentia pandas "numpy<2"
      ```
 ---
 
