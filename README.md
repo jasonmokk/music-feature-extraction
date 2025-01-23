@@ -41,22 +41,6 @@ music-feature-extraction/
      ```bash
      pip install -r requirements.txt
      ```
-
-3. **Install Tool-Specific Dependencies**:
-   - **Essentia**:
-     ```bash
-     pip install essentia
-     ```
-   - **Aubio**:
-     ```bash
-     brew install aubio
-     pip install aubio
-     ```
-   - **pyYAAFE**:
-     ```bash
-     pip install yaafelib
-     ```
-
 ---
 
 ## **Usage**
@@ -105,15 +89,3 @@ Extracted features will be saved as `.csv` files in the `results/` directory.
 
 ---
 
-## **Contributing**
-If you’d like to contribute, please fork the repository and submit a pull request. Suggestions for improving scripts or adding support for more features are always welcome!
-
----
-
-## **License**
-This project is licensed under the MIT License.
-
----
-
-## **Contact**
-For any questions or support, please reach out to [your email or GitHub profile].
