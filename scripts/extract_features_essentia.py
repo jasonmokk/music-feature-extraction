@@ -13,7 +13,8 @@ from essentia.standard import (
     Danceability,        # Groove/routine pattern detection
     Loudness,            # Perceived volume (EBU R128 standard)
     Energy,              # Signal intensity
-    Duration             # Track length
+    Duration,             # Track length
+    DynamicComplexity
 )
 
 # --------------------------
@@ -96,6 +97,12 @@ def extract_features(file_path):
         features['energy'] = Energy()(audio)
     except Exception as e:
         features['energy'] = None
+
+    try:
+        dyn_complex = DynamicComplexity()(audio)
+        features['dynamic_complexity'] = dyn_complex[0]  # Higher = more dynamic range
+    except:
+        features['dynamic_complexity'] = None
 
     return features
 
