@@ -1,95 +1,137 @@
+"""
+Feature extraction script for analyzing musical creativity and mood in AI-generated vs human music.
+Extracts key audio features using Essentia library for later analysis of innovation/homogeneity.
+"""
+
 import os
 import pandas as pd
-from tqdm import tqdm
+from tqdm import tqdm  # Progress bar
 from essentia.standard import (
-    MonoLoader,
-    RhythmExtractor2013,
-    KeyExtractor,
-    Danceability,
-    Loudness,
-    Energy,
-    Duration
+    MonoLoader,          # Audio loading
+    RhythmExtractor2013, # Tempo analysis
+    KeyExtractor,        # Musical key detection
+    Danceability,        # Groove/routine pattern detection
+    Loudness,            # Perceived volume (EBU R128 standard)
+    Energy,              # Signal intensity
+    Duration             # Track length
 )
 
-# Paths
+# --------------------------
+# PATH CONFIGURATION
+# --------------------------
+# Using two-level parent directory structure:
+# project/
+# ├── src/ (script location)
+# ├── data/ (input audio files)
+# └── results/ (output CSVs)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-RESULTS_DIR = os.path.join(BASE_DIR, "results")
-os.makedirs(RESULTS_DIR, exist_ok=True)
+DATA_DIR = os.path.join(BASE_DIR, "data")        # Input directory for audio files
+RESULTS_DIR = os.path.join(BASE_DIR, "results")  # Output directory for features
+os.makedirs(RESULTS_DIR, exist_ok=True)          # Create results dir if missing
 
 def extract_features(file_path):
+    """Extracts musical features from audio files with error handling.
+    
+    Args:
+        file_path: Path to audio file (supports MP3, WAV, etc.)
+        
+    Returns:
+        Dictionary of features or None if fatal error occurs
+    """
     features = {"filename": os.path.basename(file_path)}
     
     try:
-        # Load audio
+        # Load audio as mono channel at 44.1kHz for consistent analysis
+        # Note: Essentia requires mono signals for most features
         loader = MonoLoader(filename=file_path, sampleRate=44100)
         audio = loader()
     except Exception as e:
         print(f"Failed to load {file_path}: {e}")
         return None
 
-    # --- Feature extraction with error handling ---
+    # --------------------------
+    # CORE FEATURE EXTRACTION
+    # --------------------------
+    
+    # Duration (seconds) - fundamental musical property
     try:
-        duration_extractor = Duration()
-        features['duration'] = duration_extractor(audio)
+        features['duration'] = Duration()(audio)
     except Exception as e:
-        features['duration'] = None
+        features['duration'] = None  
 
+    # Tempo (BPM) - rhythmic innovation analysis
     try:
-        # Tempo only (beat intervals removed)
-        rhythm_extractor = RhythmExtractor2013()
-        tempo, *_ = rhythm_extractor(audio)  # Unpack only tempo
+        # Using RhythmExtractor2013 algorithm (Brossier's method)
+        tempo, *_ = RhythmExtractor2013()(audio)
         features['tempo'] = tempo
     except Exception as e:
-        features['tempo'] = None
+        features['tempo'] = None  
 
+    # Tonality (Key/Scale) - harmonic creativity indicator
     try:
-        key_extractor = KeyExtractor()
-        key, scale, _ = key_extractor(audio)
-        features['key'] = key
-        features['scale'] = scale
+        key, scale, _ = KeyExtractor()(audio)
+        features['key'] = key    # Musical key (C, D, etc.)
+        features['scale'] = scale  # Major/minor tonality
     except Exception as e:
-        features['key'] = None
+        features['key'] = None   # Fails on atonal/experimental music
         features['scale'] = None
 
+    # Danceability - quantifies groove/routine patterns (0-1)
     try:
-        danceability_extractor = Danceability()
-        danceability, *_ = danceability_extractor(audio)
-        features['danceability'] = danceability
+        # Combines rhythm stability and beat strength
+        features['danceability'] = Danceability()(audio)[0]
     except Exception as e:
-        features['danceability'] = None
+        features['danceability'] = None  # Fails on non-percussive tracks
 
+    # Loudness (LUFS) - perceived volume normalization
     try:
-        loudness_extractor = Loudness()
-        features['loudness'] = loudness_extractor(audio)
+        # Uses EBU R128 standard, important for loudness wars analysis
+        features['loudness'] = Loudness()(audio)
     except Exception as e:
         features['loudness'] = None
 
+    # Energy - correlates with musical intensity/innovation
     try:
-        energy_extractor = Energy()
-        features['energy'] = energy_extractor(audio)
+        # RMS-based measure of signal power
+        features['energy'] = Energy()(audio)
     except Exception as e:
         features['energy'] = None
 
     return features
 
 def process_all_files(data_dir, results_csv):
+    """Processes all audio files in directory with progress tracking.
+    
+    Args:
+        data_dir: Input directory with audio files
+        results_csv: Output path for CSV results
+    """
+    # Filter only MP3 files (modify if using other formats)
     audio_files = [f for f in os.listdir(data_dir) if f.endswith(".mp3")]
+    
+    if not audio_files:
+        print(f"No MP3 files found in {data_dir}")
+        return
+
     all_features = []
     
-    for file_name in tqdm(audio_files, desc="Processing files"):
+    # Process files with visual progress bar
+    for file_name in tqdm(audio_files, desc="Analyzing Music"):
         file_path = os.path.join(data_dir, file_name)
         features = extract_features(file_path)
-        if features:
+        
+        if features:  # Only keep successful extractions
             all_features.append(features)
 
+    # Save to CSV for statistical analysis
     if all_features:
         df = pd.DataFrame(all_features)
         df.to_csv(results_csv, index=False)
-        print(f"\nResults saved to {results_csv}")
+        print(f"\nSuccess: Processed {len(all_features)} files → {results_csv}")
     else:
-        print("\nNo features extracted. Check audio files.")
+        print("\nWarning: No features extracted. Check file formats/errors.")
 
 if __name__ == "__main__":
-    results_csv = os.path.join(RESULTS_DIR, "essentia_results.csv")
-    process_all_files(DATA_DIR, results_csv)
+    # Entry point - runs full processing pipeline
+    output_path = os.path.join(RESULTS_DIR, "music_features.csv")
+    process_all_files(DATA_DIR, output_path)
