@@ -61,17 +61,9 @@ Each script corresponds to a specific tool. For example:
   ```bash
   python scripts/extract_features_librosa.py
   ```
-- **Essentia**:
+- **Essentia (This is the main script we are working with)**:
   ```bash
   python scripts/extract_features_essentia.py
-  ```
-- **Aubio**:
-  ```bash
-  python scripts/extract_features_aubio.py
-  ```
-- **pyYAAFE**:
-  ```bash
-  python scripts/extract_features_pyyaafe.py
   ```
 
 Extracted features will be saved as `.csv` files in the `results/` directory.
