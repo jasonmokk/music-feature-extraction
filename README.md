@@ -46,7 +46,7 @@ This repository houses the workflow for extracting audio features for music file
 4. **Install Dependencies**:
    - Install the necessary packages:
      ```bash
-     pip install librosa essentia pandas "numpy<2"
+     pip install librosa essentia pandas tqdm "numpy<2"
      ```
 ---
 
