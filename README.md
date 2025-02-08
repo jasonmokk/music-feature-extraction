@@ -1,6 +1,6 @@
 # **Music Feature Extraction**
 
-This repository houses the workflow for extracting audio features for music files, focusing on replicating Spotify-like attributes such as tempo, energy, loudness, and more. Currently provides scripts for using Librosa and Essentia, more to come soon.
+This repository houses the Python workflow for extracting audio features for music files, focusing on replicating Spotify-like attributes such as tempo, energy, loudness, and more. Currently provides scripts for using Librosa and Essentia, more to come soon.
 
 ---
 
