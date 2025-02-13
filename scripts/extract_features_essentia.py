@@ -14,7 +14,12 @@ from essentia.standard import (
     Loudness,            # Perceived volume (EBU R128 standard)
     Energy,              # Signal intensity
     Duration,             # Track length
-    DynamicComplexity
+    DynamicComplexity,
+    FrameCutter,
+    FrameGenerator,
+    Spectrum,
+    SpectralPeaks,
+    Dissonance
 )
 
 # --------------------------
@@ -98,11 +103,40 @@ def extract_features(file_path):
     except Exception as e:
         features['energy'] = None
 
+    # Dynamic Complexity (energy fluctuation, mood shifts)
     try:
         dyn_complex = DynamicComplexity()(audio)
         features['dynamic_complexity'] = dyn_complex[0]  # Higher = more dynamic range
     except:
         features['dynamic_complexity'] = None
+
+    # Dissonance - harmonic tension / unsettling moods
+    try:
+        # FrameCutter: Split audio into frames
+        frame_size = 1024
+        hop_size = 512
+        frame_cutter = FrameCutter(frameSize=frame_size, hopSize=hop_size, startFromZero=True)
+        spectrum = Spectrum(size=frame_size)
+        spectral_peaks = SpectralPeaks(magnitudeThreshold=0.1, maxFrequency=5000, sampleRate=44100)
+        dissonance_calc = Dissonance()
+
+        dissonance_values = []
+
+        for frame in FrameGenerator(audio, frameSize=frame_size, hopSize=hop_size, startFromZero=True):
+            # Compute spectrum
+            spec = spectrum(frame)
+            # Extract spectral peaks
+            frequencies, magnitudes = spectral_peaks(spec)
+            # Compute dissonance
+            dissonance = dissonance_calc(frequencies, magnitudes)
+            dissonance_values.append(dissonance)
+
+        # Average dissonance over all frames
+        features['dissonance'] = sum(dissonance_values) / len(dissonance_values) if dissonance_values else None
+
+    except Exception as e:
+        print(f"Error computing dissonance for {file_path}: {e}")
+        features['dissonance'] = None
 
     return features
 
