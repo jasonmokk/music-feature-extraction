@@ -5,10 +5,7 @@ This repository houses the Python workflow for extracting audio features for mus
 ---
 
 ## **Tools Used**
-- **Librosa**: General-purpose music feature extraction.
 - **Essentia**: Advanced high-level and low-level feature extraction.
-- **Aubio**: Lightweight and efficient for tempo and beat detection.
-
 ---
 
 ## **Installation**
@@ -57,10 +54,6 @@ Place your `.mp3` or `.wav` files in the `data/` directory.
 
 ### **2. Run Feature Extraction Scripts**
 Each script corresponds to a specific tool. For example:
-- **Librosa**:
-  ```bash
-  python scripts/extract_features_librosa.py
-  ```
 - **Essentia (This is the main script we are working with)**:
   ```bash
   python scripts/extract_features_essentia.py
