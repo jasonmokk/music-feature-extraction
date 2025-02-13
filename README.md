@@ -5,7 +5,7 @@ This repository houses the Python workflow for extracting audio features for mus
 ---
 
 ## **Tools Used**
-- **Essentia**: Advanced high-level and low-level feature extraction.
+- **Essentia**: Advanced high-level and low-level feature extraction and ML-based mood detection.
 ---
 
 ## **Installation**
