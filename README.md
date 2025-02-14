@@ -65,23 +65,3 @@ Each script corresponds to a specific tool. For example:
 
 Extracted features will be saved as `.csv` files in the `results/` directory.
 
----
-
-## **Spotify-Like Features Progress**
-| **Feature**         | **Replicated** | **Tools Used**      |
-|----------------------|----------------|---------------------|
-| Tempo                | Yes            | Essentia, Librosa   |
-| Energy               | Yes            | Essentia            |
-| Loudness             | Yes            | Essentia            |
-| Danceability         | Yes            | Essentia            |
-| Key                  | Yes            | Essentia            |
-| Mode                 | Yes            | Essentia            |
-| Duration             | Yes            | Essentia            |
-| Valence              | No             | -                   |
-| Speechiness          | No             | -                   |
-| Instrumentalness     | No             | -                   |
-| Acousticness         | No             | -                   |
-| Liveness             | No             | -                   |
-
----
-
