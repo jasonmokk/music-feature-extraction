@@ -43,7 +43,7 @@ This repository houses the Python workflow for extracting audio features for mus
 4. **Install Dependencies**:
    - Install the necessary packages:
      ```bash
-     pip install librosa essentia-tensorflow pandas tqdm "numpy<2"
+     pip install essentia-tensorflow pandas tqdm "numpy<2"
      ```
 ---
 
