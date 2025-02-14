@@ -1,11 +1,11 @@
 # **Music Feature Extraction**
 
-This repository houses the Python workflow for extracting audio features for music files, focusing on replicating Spotify-like attributes such as tempo, energy, loudness, and more. Currently provides scripts for using Librosa and Essentia, more to come soon.
+This repository houses the Python workflow for extracting audio features for music files, focusing on replicating Spotify-like attributes such as tempo, energy, loudness, and more. Currently provides scripts for using Essentia extraction and ML-based mood detection.
 
 ---
 
 ## **Tools Used**
-- **Essentia**: Advanced high-level and low-level feature extraction and ML-based mood detection.
+- **Essentia**: Advanced high-level and low-level feature extraction library. 
 ---
 
 ## **Installation**
@@ -43,7 +43,7 @@ This repository houses the Python workflow for extracting audio features for mus
 4. **Install Dependencies**:
    - Install the necessary packages:
      ```bash
-     pip install librosa essentia pandas tqdm "numpy<2"
+     pip install librosa essentia-tensorflow pandas tqdm "numpy<2"
      ```
 ---
 
@@ -54,9 +54,13 @@ Place your `.mp3` or `.wav` files in the `data/` directory.
 
 ### **2. Run Feature Extraction Scripts**
 Each script corresponds to a specific tool. For example:
-- **Essentia (This is the main script we are working with)**:
+- **Essentia Feature Extraction (This is the main script we are working with)**:
   ```bash
   python scripts/extract_features_essentia.py
+  ```
+- **Essentia ML Mood Detection **:
+  ```bash
+  python scripts/mood_classification.py
   ```
 
 Extracted features will be saved as `.csv` files in the `results/` directory.
