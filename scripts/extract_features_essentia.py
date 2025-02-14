@@ -2,7 +2,6 @@
 Feature extraction script for analyzing musical creativity and mood in AI-generated vs human music.
 Extracts key audio features using Essentia library for later analysis of innovation/homogeneity.
 """
-
 import os
 import pandas as pd
 from tqdm import tqdm  # Progress bar
@@ -13,27 +12,10 @@ from essentia.standard import (
     Danceability,        # Groove/routine pattern detection
     Loudness,            # Perceived volume (EBU R128 standard)
     Energy,              # Signal intensity
-    Duration,             # Track length
-    DynamicComplexity,
-    FrameCutter,
-    FrameGenerator,
-    Spectrum,
-    SpectralPeaks,
-    Dissonance
+    Duration,            # Track length
+    DynamicComplexity
 )
-
-# --------------------------
-# PATH CONFIGURATION
-# --------------------------
-# Using two-level parent directory structure:
-# project/
-# ├── src/ (script location)
-# ├── data/ (input audio files)
-# └── results/ (output CSVs)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")        # Input directory for audio files
-RESULTS_DIR = os.path.join(BASE_DIR, "results")  # Output directory for features
-os.makedirs(RESULTS_DIR, exist_ok=True)          # Create results dir if missing
+import numpy as np
 
 def extract_features(file_path):
     """Extracts musical features from audio files with error handling.
@@ -42,13 +24,12 @@ def extract_features(file_path):
         file_path: Path to audio file (supports MP3, WAV, etc.)
         
     Returns:
-        Dictionary of features or None if fatal error occurs
+        Dictionary of features or None if a fatal error occurs.
     """
     features = {"filename": os.path.basename(file_path)}
     
     try:
-        # Load audio as mono channel at 44.1kHz for consistent analysis
-        # Note: Essentia requires mono signals for most features
+        # Load audio as mono channel at 44.1kHz for consistent analysis.
         loader = MonoLoader(filename=file_path, sampleRate=44100)
         audio = loader()
     except Exception as e:
@@ -59,13 +40,13 @@ def extract_features(file_path):
     # CORE FEATURE EXTRACTION
     # --------------------------
     
-    # Duration (seconds) - fundamental musical property
+    # Duration (seconds)
     try:
         features['duration'] = Duration()(audio)
     except Exception as e:
         features['duration'] = None  
 
-    # Tempo (BPM) - rhythmic innovation analysis
+    # Tempo (BPM)
     try:
         # Using RhythmExtractor2013 algorithm (Brossier's method)
         tempo, *_ = RhythmExtractor2013()(audio)
@@ -73,32 +54,29 @@ def extract_features(file_path):
     except Exception as e:
         features['tempo'] = None  
 
-    # Tonality (Key/Scale) - harmonic creativity indicator
+    # Tonality (Key/Scale)
     try:
         key, scale, _ = KeyExtractor()(audio)
         features['key'] = key    # Musical key (C, D, etc.)
         features['scale'] = scale  # Major/minor tonality
     except Exception as e:
-        features['key'] = None   # Fails on atonal/experimental music
+        features['key'] = None
         features['scale'] = None
 
-    # Danceability - quantifies groove/routine patterns (0-1)
+    # Danceability (0-1)
     try:
-        # Combines rhythm stability and beat strength
         features['danceability'] = Danceability()(audio)[0]
     except Exception as e:
-        features['danceability'] = None  # Fails on non-percussive tracks
+        features['danceability'] = None
 
-    # Loudness (LUFS) - perceived volume normalization
+    # Loudness (LUFS)
     try:
-        # Uses EBU R128 standard, important for loudness wars analysis
         features['loudness'] = Loudness()(audio)
     except Exception as e:
         features['loudness'] = None
 
-    # Energy - correlates with musical intensity/innovation
+    # Energy (RMS-based)
     try:
-        # RMS-based measure of signal power
         features['energy'] = Energy()(audio)
     except Exception as e:
         features['energy'] = None
@@ -106,49 +84,91 @@ def extract_features(file_path):
     # Dynamic Complexity (energy fluctuation, mood shifts)
     try:
         dyn_complex = DynamicComplexity()(audio)
-        features['dynamic_complexity'] = dyn_complex[0]  # Higher = more dynamic range
-    except:
+        features['dynamic_complexity'] = dyn_complex[0]
+    except Exception as e:
         features['dynamic_complexity'] = None
 
-    # Dissonance - harmonic tension / unsettling moods
+    # Dissonance - using LowLevelSpectralEqloudExtractor to compute it
     try:
-        # FrameCutter: Split audio into frames
-        frame_size = 1024
-        hop_size = 512
-        frame_cutter = FrameCutter(frameSize=frame_size, hopSize=hop_size, startFromZero=True)
-        spectrum = Spectrum(size=frame_size)
-        spectral_peaks = SpectralPeaks(magnitudeThreshold=0.1, maxFrequency=5000, sampleRate=44100)
-        dissonance_calc = Dissonance()
-
-        dissonance_values = []
-
-        for frame in FrameGenerator(audio, frameSize=frame_size, hopSize=hop_size, startFromZero=True):
-            # Compute spectrum
-            spec = spectrum(frame)
-            # Extract spectral peaks
-            frequencies, magnitudes = spectral_peaks(spec)
-            # Compute dissonance
-            dissonance = dissonance_calc(frequencies, magnitudes)
-            dissonance_values.append(dissonance)
-
-        # Average dissonance over all frames
-        features['dissonance'] = sum(dissonance_values) / len(dissonance_values) if dissonance_values else None
-
+        from essentia.standard import LowLevelSpectralEqloudExtractor
+        eqloud_extractor = LowLevelSpectralEqloudExtractor(frameSize=2048, hopSize=1024, sampleRate=44100)
+        eqloud_out = eqloud_extractor(audio)
+        dissonance_vals = eqloud_out[0]
+        if dissonance_vals is not None and len(dissonance_vals) > 0:
+            # If it's a NumPy array, use its mean method.
+            if isinstance(dissonance_vals, np.ndarray):
+                features['dissonance'] = float(dissonance_vals.mean())
+            else:
+                features['dissonance'] = sum(dissonance_vals) / len(dissonance_vals)
+        else:
+            features['dissonance'] = None
     except Exception as e:
-        print(f"Error computing dissonance for {file_path}: {e}")
+        print(f"Error computing dissonance via LowLevelSpectralEqloudExtractor for {file_path}: {e}")
         features['dissonance'] = None
+
+    # Use LowLevelSpectralExtractor to compute inharmonicity, tristimulus, and oddToEvenHarmonicRatio
+    try:
+        from essentia.standard import LowLevelSpectralExtractor
+        spectral_extractor = LowLevelSpectralExtractor(frameSize=2048, hopSize=1024, sampleRate=44100)
+        spectral_out = spectral_extractor(audio)
+        # Extract outputs by index:
+        inharmonicity_vals = spectral_out[26]
+        tristimulus_vals = spectral_out[27]
+        odd_even_vals    = spectral_out[28]
+        
+        # Inharmonicity
+        if inharmonicity_vals is not None and len(inharmonicity_vals) > 0:
+            if isinstance(inharmonicity_vals, np.ndarray):
+                features['inharmonicity'] = float(inharmonicity_vals.mean())
+            else:
+                features['inharmonicity'] = sum(inharmonicity_vals) / len(inharmonicity_vals)
+        else:
+            features['inharmonicity'] = None
+
+        # OddToEvenHarmonicRatio
+        if odd_even_vals is not None and len(odd_even_vals) > 0:
+            if isinstance(odd_even_vals, np.ndarray):
+                features['oddToEvenHarmonicRatio'] = float(odd_even_vals.mean())
+            else:
+                features['oddToEvenHarmonicRatio'] = sum(odd_even_vals) / len(odd_even_vals)
+        else:
+            features['oddToEvenHarmonicRatio'] = None
+
+        # Tristimulus: expected to be a list of vectors (each with at least 3 values)
+        if tristimulus_vals is not None and len(tristimulus_vals) > 0:
+            tristimulus_avg = [0.0, 0.0, 0.0]
+            count = 0
+            for vec in tristimulus_vals:
+                # Ensure vec is a sequence and has at least 3 elements.
+                if vec is not None and len(vec) >= 3:
+                    tristimulus_avg[0] += vec[0]
+                    tristimulus_avg[1] += vec[1]
+                    tristimulus_avg[2] += vec[2]
+                    count += 1
+            if count > 0:
+                tristimulus_avg = [x / count for x in tristimulus_avg]
+                features['tristimulus'] = ", ".join(map(str, tristimulus_avg))
+            else:
+                features['tristimulus'] = None
+        else:
+            features['tristimulus'] = None
+    except Exception as e:
+        print(f"Error computing spectral features via LowLevelSpectralExtractor for {file_path}: {e}")
+        features['inharmonicity'] = None
+        features['tristimulus'] = None
+        features['oddToEvenHarmonicRatio'] = None
 
     return features
 
 def process_all_files(data_dir, results_csv):
-    """Processes all audio files in directory with progress tracking.
+    """Processes all audio files in the directory with progress tracking.
     
     Args:
-        data_dir: Input directory with audio files
-        results_csv: Output path for CSV results
+        data_dir: Input directory with audio files.
+        results_csv: Output path for CSV results.
     """
-    # Filter only MP3 files (modify if using other formats)
-    audio_files = [f for f in os.listdir(data_dir) if f.endswith(".mp3")]
+    # Filter only MP3 files
+    audio_files = [f for f in os.listdir(data_dir) if f.lower().endswith(".mp3")]
     
     if not audio_files:
         print(f"No MP3 files found in {data_dir}")
@@ -156,15 +176,12 @@ def process_all_files(data_dir, results_csv):
 
     all_features = []
     
-    # Process files with visual progress bar
     for file_name in tqdm(audio_files, desc="Analyzing Music"):
         file_path = os.path.join(data_dir, file_name)
         features = extract_features(file_path)
-        
         if features:  # Only keep successful extractions
             all_features.append(features)
 
-    # Save to CSV for statistical analysis
     if all_features:
         df = pd.DataFrame(all_features)
         df.to_csv(results_csv, index=False)
@@ -173,6 +190,10 @@ def process_all_files(data_dir, results_csv):
         print("\nWarning: No features extracted. Check file formats/errors.")
 
 if __name__ == "__main__":
-    # Entry point - runs full processing pipeline
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+    RESULTS_DIR = os.path.join(BASE_DIR, "results")
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    
     output_path = os.path.join(RESULTS_DIR, "music_features.csv")
     process_all_files(DATA_DIR, output_path)
