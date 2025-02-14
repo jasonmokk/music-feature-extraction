@@ -58,7 +58,7 @@ Each script corresponds to a specific tool. For example:
   ```bash
   python scripts/extract_features_essentia.py
   ```
-- **Essentia ML Mood Detection **:
+- **Essentia ML Mood Detection (This is a work in progress/experimental for now)**:
   ```bash
   python scripts/mood_classification.py
   ```
