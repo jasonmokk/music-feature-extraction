@@ -1,0 +1,1 @@
+"""Instrument detection functionality.""" 

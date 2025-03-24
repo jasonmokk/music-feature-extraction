@@ -1,0 +1,4 @@
+essentia-tensorflow>=2.1b6
+pandas>=2.0.0
+tqdm>=4.66.0
+numpy<2 

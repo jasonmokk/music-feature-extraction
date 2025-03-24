@@ -1,21 +1,24 @@
 """
-Feature extraction script for analyzing musical creativity and mood in AI-generated vs human music.
-Extracts key audio features using Essentia library for later analysis of innovation/homogeneity.
+Core feature extraction module for analyzing musical creativity and mood in audio.
+Extracts key audio features using Essentia library.
 """
 import os
 import pandas as pd
-from tqdm import tqdm  # Progress bar
+from tqdm import tqdm
 from essentia.standard import (
-    MonoLoader,          # Audio loading
-    RhythmExtractor2013, # Tempo analysis
-    KeyExtractor,        # Musical key detection
-    Danceability,        # Groove/routine pattern detection
-    Loudness,            # Perceived volume (EBU R128 standard)
-    Energy,              # Signal intensity
-    Duration,            # Track length
-    DynamicComplexity
+    MonoLoader,
+    RhythmExtractor2013,
+    KeyExtractor,
+    Danceability,
+    Loudness,
+    Energy,
+    Duration,
+    DynamicComplexity,
+    LowLevelSpectralEqloudExtractor,
+    LowLevelSpectralExtractor
 )
 import numpy as np
+
 
 def extract_features(file_path):
     """Extracts musical features from audio files with error handling.
@@ -90,7 +93,6 @@ def extract_features(file_path):
 
     # Dissonance - using LowLevelSpectralEqloudExtractor to compute it
     try:
-        from essentia.standard import LowLevelSpectralEqloudExtractor
         eqloud_extractor = LowLevelSpectralEqloudExtractor(frameSize=2048, hopSize=1024, sampleRate=44100)
         eqloud_out = eqloud_extractor(audio)
         dissonance_vals = eqloud_out[0]
@@ -108,7 +110,6 @@ def extract_features(file_path):
 
     # Use LowLevelSpectralExtractor to compute inharmonicity, tristimulus, and oddToEvenHarmonicRatio
     try:
-        from essentia.standard import LowLevelSpectralExtractor
         spectral_extractor = LowLevelSpectralExtractor(frameSize=2048, hopSize=1024, sampleRate=44100)
         spectral_out = spectral_extractor(audio)
         # Extract outputs by index:
@@ -160,6 +161,7 @@ def extract_features(file_path):
 
     return features
 
+
 def process_all_files(data_dir, results_csv):
     """Processes all audio files in the directory with progress tracking.
     
@@ -187,13 +189,4 @@ def process_all_files(data_dir, results_csv):
         df.to_csv(results_csv, index=False)
         print(f"\nSuccess: Processed {len(all_features)} files → {results_csv}")
     else:
-        print("\nWarning: No features extracted. Check file formats/errors.")
-
-if __name__ == "__main__":
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    DATA_DIR = os.path.join(BASE_DIR, "data")
-    RESULTS_DIR = os.path.join(BASE_DIR, "results")
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    
-    output_path = os.path.join(RESULTS_DIR, "music_features.csv")
-    process_all_files(DATA_DIR, output_path)
+        print("\nWarning: No features extracted. Check file formats/errors.") 
