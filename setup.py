@@ -30,7 +30,19 @@ setup(
         "pandas",
         "tqdm",
         "numpy<2",
+        "flask>=2.0.0",
+        "werkzeug>=2.0.0",
+        "plotly>=5.3.0",
+        "matplotlib>=3.5.0",
+        "seaborn>=0.11.0",
     ],
+    extras_require={
+        "web": [
+            "flask>=2.0.0",
+            "werkzeug>=2.0.0",
+            "plotly>=5.3.0", 
+        ],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",

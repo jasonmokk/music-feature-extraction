@@ -1,0 +1,74 @@
+/* Main Styling */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Card styling */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+/* Feature icons */
+.feature-icons .feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #007bff;
+}
+
+.feature-group h4 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #495057;
+    font-weight: 600;
+}
+
+/* Chart containers */
+.chart-container {
+    height: 400px;
+    width: 100%;
+}
+
+/* Custom file upload */
+.custom-file-upload {
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.custom-file-upload:hover {
+    border-color: #007bff;
+    background-color: #f8f9ff;
+}
+
+/* Progress bar */
+.progress {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* Adjust spacing on mobile */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+    
+    .feature-icons .col-md-4 {
+        margin-bottom: 2rem;
+    }
+} 

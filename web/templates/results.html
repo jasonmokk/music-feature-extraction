@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Analysis Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-music me-2"></i>Music Feature Extraction
+            </a>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">
+                        <i class="fas fa-upload me-1"></i>Upload New File
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Analysis completed successfully! Here are the detailed results.
+                </div>
+            </div>
+        </div>
+
+        <!-- Basic Features Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-wave-square me-2"></i>Basic Audio Features
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if feature_data %}
+                            <div class="row">
+                                <!-- Track Info -->
+                                <div class="col-md-4">
+                                    <div class="feature-group">
+                                        <h4>Track Information</h4>
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                File name
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.filename }}
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Duration
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.duration|round(1) }} sec
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <!-- Musical Features -->
+                                <div class="col-md-4">
+                                    <div class="feature-group">
+                                        <h4>Musical Features</h4>
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Tempo (BPM)
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.tempo|round(1) }}
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Key
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.key }} {{ feature_data.scale }}
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Danceability
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.danceability|round(2) }}
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <!-- Audio Characteristics -->
+                                <div class="col-md-4">
+                                    <div class="feature-group">
+                                        <h4>Audio Characteristics</h4>
+                                        <ul class="list-group">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Energy
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.energy|round(0) }}
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Loudness
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.loudness|round(1) }} LUFS
+                                                </span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                Dynamic Complexity
+                                                <span class="badge bg-primary rounded-pill">
+                                                    {{ feature_data.dynamic_complexity|round(2) }}
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Basic feature data not available.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mood Analysis Section -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-smile me-2"></i>Mood Analysis
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if chart_files and chart_files.mood_chart %}
+                            <div id="mood-chart" class="chart-container"></div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Mood analysis data not available.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Instrument Detection Section -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-guitar me-2"></i>Instrument Detection
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if chart_files and chart_files.instrument_chart %}
+                            <div id="instrument-chart" class="chart-container"></div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Instrument detection data not available.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mood Theme Analysis Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-theater-masks me-2"></i>Mood & Theme Analysis
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if chart_files and chart_files.theme_chart %}
+                            <div id="theme-chart" class="chart-container"></div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Mood theme analysis data not available.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4 mb-5">
+            <div class="col-md-12 text-center">
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-upload me-2"></i>Analyze Another File
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2023 Music Feature Extraction</span>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Render all charts from the JSON data
+        $(document).ready(function() {
+            {% if chart_files and chart_files.mood_chart %}
+                var moodData = {{ chart_files.mood_chart|safe }};
+                Plotly.newPlot('mood-chart', moodData.data, moodData.layout);
+            {% endif %}
+            
+            {% if chart_files and chart_files.instrument_chart %}
+                var instrumentData = {{ chart_files.instrument_chart|safe }};
+                Plotly.newPlot('instrument-chart', instrumentData.data, instrumentData.layout);
+            {% endif %}
+            
+            {% if chart_files and chart_files.theme_chart %}
+                var themeData = {{ chart_files.theme_chart|safe }};
+                Plotly.newPlot('theme-chart', themeData.data, themeData.layout);
+            {% endif %}
+        });
+    </script>
+</body>
+</html> 

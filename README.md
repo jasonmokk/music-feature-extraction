@@ -9,12 +9,15 @@ A comprehensive audio analysis toolkit for extracting music features from audio 
 - **Genre Recognition**: Classify music into 400 different genre categories using Discogs taxonomy
 - **Instrument Detection**: Identify up to 40 different instruments present in audio
 - **Mood & Theme Analysis**: Classify tracks into 56 different mood/theme categories
+- **Web Interface**: Upload and analyze files through an interactive web dashboard
 
 ## **Tools & Tech Stack**
 
 - **Essentia**: High-performance audio analysis library with TensorFlow integration
 - **TensorFlow**: Pre-trained models for music classification
 - **Pandas**: Data handling and CSV output
+- **Flask**: Web interface for easy file analysis
+- **Plotly**: Interactive visualizations
 - **Python 3.12**: Modern Python for improved performance
 
 ## **Installation**
@@ -53,9 +56,22 @@ A comprehensive audio analysis toolkit for extracting music features from audio 
 
 ## **Usage**
 
+### **Web Interface**
+
+The easiest way to analyze your music files is through the web interface:
+
+```bash
+python web/app.py
+```
+
+Then open http://localhost:5000 in your web browser:
+1. Upload an MP3 or WAV file
+2. View comprehensive analysis with interactive visualizations
+3. See detailed information about the musical characteristics
+
 ### **Quick Start: Complete Pipeline**
 
-The easiest way to run the complete analysis pipeline on your audio files:
+Alternatively, run the complete analysis pipeline through the command line:
 
 ```bash
 python scripts/run_pipeline.py
