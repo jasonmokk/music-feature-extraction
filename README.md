@@ -64,7 +64,7 @@ The easiest way to analyze your music files is through the web interface:
 python web/app.py
 ```
 
-Then open http://localhost:5000 in your web browser:
+Then open http://127.0.0.1:5000 in your web browser:
 1. Upload one or more MP3 or WAV files
 2. For batch uploads:
    - Process multiple files at once
