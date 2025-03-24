@@ -65,9 +65,14 @@ python web/app.py
 ```
 
 Then open http://localhost:5000 in your web browser:
-1. Upload an MP3 or WAV file
-2. View comprehensive analysis with interactive visualizations
-3. See detailed information about the musical characteristics
+1. Upload one or more MP3 or WAV files
+2. For batch uploads:
+   - Process multiple files at once
+   - View aggregate statistics and visualizations
+   - Export all results to CSV
+   - Click on individual files for detailed analysis
+3. View comprehensive analysis with interactive visualizations
+4. See detailed information about the musical characteristics
 
 ### **Quick Start: Complete Pipeline**
 

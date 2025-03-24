@@ -222,18 +222,18 @@
         // Render all charts from the JSON data
         $(document).ready(function() {
             {% if chart_files and chart_files.mood_chart %}
-                var moodData = {{ chart_files.mood_chart|safe }};
-                Plotly.newPlot('mood-chart', moodData.data, moodData.layout);
+            var moodData = JSON.parse('{{ chart_files.mood_chart|safe }}');
+            Plotly.newPlot('mood-chart', moodData.data, moodData.layout);
             {% endif %}
             
             {% if chart_files and chart_files.instrument_chart %}
-                var instrumentData = {{ chart_files.instrument_chart|safe }};
-                Plotly.newPlot('instrument-chart', instrumentData.data, instrumentData.layout);
+            var instrumentData = JSON.parse('{{ chart_files.instrument_chart|safe }}');
+            Plotly.newPlot('instrument-chart', instrumentData.data, instrumentData.layout);
             {% endif %}
             
             {% if chart_files and chart_files.theme_chart %}
-                var themeData = {{ chart_files.theme_chart|safe }};
-                Plotly.newPlot('theme-chart', themeData.data, themeData.layout);
+            var themeData = JSON.parse('{{ chart_files.theme_chart|safe }}');
+            Plotly.newPlot('theme-chart', themeData.data, themeData.layout);
             {% endif %}
         });
     </script>

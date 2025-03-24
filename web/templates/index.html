@@ -43,17 +43,18 @@
                             <form id="upload-form" enctype="multipart/form-data">
                                 <div class="mb-3">
                                     <div class="custom-file-upload">
-                                        <input type="file" class="form-control" id="file" name="file" accept=".mp3,.wav">
+                                        <input type="file" class="form-control" id="file" name="file" accept=".mp3,.wav" multiple>
                                         <div class="mt-3 text-center">
                                             <span class="badge bg-info">Supported formats: MP3, WAV</span>
-                                            <span class="badge bg-secondary">Max size: 32MB</span>
+                                            <span class="badge bg-secondary">Max size: 32MB per file</span>
+                                            <span class="badge bg-success">Batch upload supported</span>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-upload me-2"></i>Upload & Analyze
+                                        <i class="fas fa-upload me-2"></i>Upload & Analyze Batch
                                     </button>
                                 </div>
                             </form>
@@ -82,26 +83,33 @@
                         <p>This web application extracts and analyzes musical features from audio files using advanced audio processing techniques. It provides insights into:</p>
                         
                         <div class="row text-center feature-icons">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <div class="feature-icon">
                                     <i class="fas fa-wave-square"></i>
                                 </div>
                                 <h5>Audio Characteristics</h5>
                                 <p class="small">Tempo, key, energy, loudness, danceability</p>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <div class="feature-icon">
                                     <i class="fas fa-smile"></i>
                                 </div>
                                 <h5>Mood Analysis</h5>
                                 <p class="small">Happy, sad, aggressive, relaxed, party</p>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <div class="feature-icon">
                                     <i class="fas fa-guitar"></i>
                                 </div>
                                 <h5>Instrument Detection</h5>
                                 <p class="small">40+ instruments identified</p>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="feature-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <h5>Batch Processing</h5>
+                                <p class="small">Analyze multiple files at once</p>
                             </div>
                         </div>
                         

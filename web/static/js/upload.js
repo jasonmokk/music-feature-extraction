@@ -1,6 +1,6 @@
 /**
  * Music Feature Extraction Web UI
- * JavaScript for handling file upload and analysis.
+ * JavaScript for handling file upload and batch analysis.
  */
 
 $(document).ready(function() {
@@ -8,25 +8,39 @@ $(document).ready(function() {
     $('#upload-form').on('submit', function(e) {
         e.preventDefault();
         
-        // Get the file
+        // Get the files
         const fileInput = document.getElementById('file');
         if (!fileInput.files.length) {
-            alert('Please select a file to upload');
+            alert('Please select at least one file to upload');
             return;
         }
         
-        const file = fileInput.files[0];
+        const files = fileInput.files;
+        const totalFiles = files.length;
+        let validFiles = [];
         
-        // Check file size (max 32MB)
-        if (file.size > 32 * 1024 * 1024) {
-            alert('File size exceeds the 32MB limit');
-            return;
+        // Validate all files
+        for (let i = 0; i < totalFiles; i++) {
+            const file = files[i];
+            
+            // Check file size (max 32MB)
+            if (file.size > 32 * 1024 * 1024) {
+                alert(`File ${file.name} exceeds the 32MB limit and will be skipped`);
+                continue;
+            }
+            
+            // Check file type
+            const fileType = file.name.split('.').pop().toLowerCase();
+            if (!['mp3', 'wav'].includes(fileType)) {
+                alert(`File ${file.name} is not an MP3 or WAV file and will be skipped`);
+                continue;
+            }
+            
+            validFiles.push(file);
         }
         
-        // Check file type
-        const fileType = file.name.split('.').pop().toLowerCase();
-        if (!['mp3', 'wav'].includes(fileType)) {
-            alert('Only MP3 and WAV files are supported');
+        if (validFiles.length === 0) {
+            alert('No valid files to process');
             return;
         }
         
@@ -34,9 +48,54 @@ $(document).ready(function() {
         $('#upload-container').addClass('d-none');
         $('#progress-container').removeClass('d-none');
         
-        // Prepare form data for upload
+        // Create a batch ID for this upload
+        const batchId = generateUUID();
+        
+        // Track progress
+        let filesProcessed = 0;
+        let totalProgress = 0;
+        
+        // Start processing each file
+        processNextFile(validFiles, 0, batchId, totalFiles);
+    });
+    
+    /**
+     * Process files one by one
+     */
+    function processNextFile(files, index, batchId, totalFiles) {
+        if (index >= files.length) {
+            // All files processed, redirect to batch results
+            $('#status-message').html(`
+                <i class="fas fa-check-circle me-2"></i>
+                All files processed! Loading results...
+            `);
+            
+            setTimeout(function() {
+                window.location.href = `/batch-results/${batchId}`;
+            }, 1500);
+            
+            return;
+        }
+        
+        const file = files[index];
+        const currentFileNum = index + 1;
+        
+        // Update status message
+        $('#status-message').html(`
+            <i class="fas fa-file-audio me-2"></i>
+            Processing file ${currentFileNum} of ${files.length}: ${file.name}
+        `);
+        
+        // Calculate overall progress percentage
+        const overallProgress = Math.round((index / files.length) * 50);
+        updateProgressBar(overallProgress);
+        
+        // Prepare form data for this file
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('batch_id', batchId);
+        formData.append('file_index', index);
+        formData.append('total_files', files.length);
         
         // Upload the file
         $.ajax({
@@ -45,67 +104,75 @@ $(document).ready(function() {
             data: formData,
             processData: false,
             contentType: false,
-            xhr: function() {
-                const xhr = new window.XMLHttpRequest();
-                xhr.upload.addEventListener('progress', function(e) {
-                    if (e.lengthComputable) {
-                        const percent = Math.round((e.loaded / e.total) * 100);
-                        $('#upload-progress').width(percent + '%');
-                        $('#upload-progress').text(percent + '%');
-                    }
-                }, false);
-                return xhr;
-            },
             success: function(response) {
                 if (response.success) {
-                    // Update status
-                    $('#status-message').html(`
-                        <i class="fas fa-cogs fa-spin me-2"></i>
-                        Analyzing audio features...
-                    `);
-                    $('#upload-progress').width('50%');
-                    $('#upload-progress').text('50%');
-                    
-                    // Start the analysis
-                    startAnalysis(response.analysis_id, response.filename);
+                    // Start the analysis for this file
+                    analyzeFile(response.analysis_id, response.filename, batchId, function() {
+                        // Move to next file
+                        processNextFile(files, index + 1, batchId, totalFiles);
+                    });
                 } else {
-                    showError('Upload failed: ' + response.message);
+                    alert(`Error processing ${file.name}: ${response.message}`);
+                    // Continue with next file despite error
+                    processNextFile(files, index + 1, batchId, totalFiles);
                 }
             },
             error: function() {
-                showError('An error occurred during file upload');
+                alert(`An error occurred during upload of ${file.name}`);
+                // Continue with next file despite error
+                processNextFile(files, index + 1, batchId, totalFiles);
             }
         });
-    });
+    }
     
     /**
-     * Start the analysis process after upload
+     * Analyze a single file after upload
      */
-    function startAnalysis(analysisId, filename) {
+    function analyzeFile(analysisId, filename, batchId, callback) {
+        // Update status
+        $('#status-message').html(`
+            <i class="fas fa-cogs fa-spin me-2"></i>
+            Analyzing features for: ${filename}
+        `);
+        
         $.ajax({
             url: `/analyze/${analysisId}/${filename}`,
             type: 'POST',
+            data: {
+                batch_id: batchId
+            },
             success: function(response) {
                 if (response.success) {
-                    // Update progress
-                    $('#upload-progress').width('100%');
-                    $('#upload-progress').text('100%');
-                    $('#status-message').html(`
-                        <i class="fas fa-check-circle me-2"></i>
-                        Analysis complete! Loading results...
-                    `);
-                    
-                    // Redirect to results page
-                    setTimeout(function() {
-                        window.location.href = `/results/${analysisId}`;
-                    }, 1000);
+                    // File analyzed successfully
+                    callback();
                 } else {
-                    showError('Analysis failed: ' + response.message);
+                    alert(`Analysis failed for ${filename}: ${response.message}`);
+                    callback();
                 }
             },
             error: function() {
-                showError('An error occurred during audio analysis');
+                alert(`An error occurred during analysis of ${filename}`);
+                callback();
             }
+        });
+    }
+    
+    /**
+     * Update the progress bar
+     */
+    function updateProgressBar(percent) {
+        $('#upload-progress').width(percent + '%');
+        $('#upload-progress').text(percent + '%');
+    }
+    
+    /**
+     * Generate a UUID for batch tracking
+     */
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
         });
     }
     
