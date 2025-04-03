@@ -166,25 +166,29 @@ export class PlaybackControls {
              console.error("PlaybackControls: Template #playback-controls not found.");
              return;
         }
+        
+        // Clone the template
         const controlsContent = template.content.cloneNode(true);
-        this.controlsElement = controlsContent.querySelector('.playback-controls'); // Get the root element
-
+        
         // Append to the provided container
         this.container.innerHTML = ''; // Clear previous controls
         this.container.appendChild(controlsContent);
+        
+        // Get the root element of controls
+        this.controlsElement = this.container.querySelector('.playback-controls');
 
-        // Setup control refs using the appended element
+        // Setup control refs
         this.playBtn = this.container.querySelector('#play');
         this.backwardBtn = this.container.querySelector('#backward');
         this.forwardBtn = this.container.querySelector('#forward');
         this.muteBtn = this.container.querySelector('#mute');
 
         // Check if buttons were found
-         if (!this.playBtn || !this.backwardBtn || !this.forwardBtn || !this.muteBtn) {
-             console.error("PlaybackControls: Could not find all control buttons within the template.");
-             this.destroy(); // Clean up if setup failed
-             return;
-         }
+        if (!this.playBtn || !this.backwardBtn || !this.forwardBtn || !this.muteBtn) {
+            console.error("PlaybackControls: Could not find all control buttons within the template.");
+            this.destroy(); // Clean up if setup failed
+            return;
+        }
 
         this.setupEventHandlers();
         this.updatePlayPauseIcon(); // Set initial icon state
@@ -315,22 +319,21 @@ export class PlaybackControls {
 // Simplified: Manages visibility of upload vs player components
 export function toggleUploadDisplayHTML(state) {
     const dropArea = document.querySelector('#file-drop-area');
-    const waveformContainer = document.querySelector('#waveform-container');
-    const controlsContainer = document.querySelector('#playback-controls-container');
-    const uploadCardBody = document.querySelector('.upload-card .card-body'); // To potentially adjust padding etc.
+    const playerListContainer = document.querySelector('#player-list');
+    const songSelectionContainer = document.querySelector('#song-selection');
+    const uploadCardBody = document.querySelector('.upload-card .card-body');
 
-    if (!dropArea || !waveformContainer || !controlsContainer || !uploadCardBody) {
+    if (!dropArea || !playerListContainer || !uploadCardBody || !songSelectionContainer) {
         console.error("toggleUploadDisplayHTML: Could not find required UI elements.");
         return;
     }
 
     if (state === 'initial' || state === 'reset') {
-        // Show drop area, hide player
+        // Show drop area, hide player list and song selection
         dropArea.style.display = 'flex';
-        waveformContainer.style.display = 'none';
-        waveformContainer.innerHTML = ''; // Clear any old waveform
-        controlsContainer.style.display = 'none';
-        controlsContainer.innerHTML = ''; // Clear any old controls
+        playerListContainer.style.display = 'none';
+        songSelectionContainer.style.display = 'none';
+        playerListContainer.innerHTML = ''; // Clear the list
         // Optional: Adjust card padding/style for upload state
         uploadCardBody.classList.remove('showing-player');
 
@@ -340,17 +343,14 @@ export function toggleUploadDisplayHTML(state) {
         }
 
     } else if (state === 'display' || state === 'hide') {
-        // Show player containers, hide drop area
-         dropArea.style.display = 'none';
-        waveformContainer.style.display = 'block';
-        controlsContainer.style.display = 'block';
+        // Show player list container and song selection, hide drop area
+        dropArea.style.display = 'none';
+        playerListContainer.style.display = 'block';
+        songSelectionContainer.style.display = 'block';
         // Optional: Adjust card padding/style for player state
         uploadCardBody.classList.add('showing-player');
 
-         // 'hide' is effectively the same as 'display' in this new setup,
-         // as main.js now controls showing/hiding the results/selector sections.
-         // We just ensure the player area is visible within the upload card.
-         console.log(`Setting upload area display state to: ${state}`);
+        console.log(`Setting upload area display state to: ${state}`);
     } else {
         console.warn(`toggleUploadDisplayHTML: Unknown state '${state}'`);
     }

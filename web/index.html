@@ -10,6 +10,7 @@
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://unpkg.com/wavesurfer.js@6.6.3/dist/wavesurfer.min.js"></script>
     </head>
     <body>
         <div class="app-container">
@@ -42,22 +43,19 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Permanent placeholders for player -->
-                            <div id="waveform-container" style="margin-top: 15px;"></div> 
-                            <div id="playback-controls-container" style="margin-top: 10px;"></div>
+                            
+                            <!-- Song selection dropdown integrated into Audio Input -->
+                            <div id="song-selection" style="display: none; margin-top: 15px;">
+                                <div class="song-select-container">
+                                    <label for="song-select-dropdown" class="song-select-label">Select Track:</label>
+                                    <select id="song-select-dropdown" class="song-select"></select>
+                                </div>
+                            </div>
+                            
+                            <!-- Modernized player list container -->
+                            <div id="player-list" style="display: none; margin-top: 20px;"></div>
                         </div>
                     </div>
-                    
-                    <!-- New Dropdown Section -->
-                    <div class="card song-selector-card" id="song-selector-section" style="display: none;">
-                        <div class="card-header">
-                            <h2><i class="fa-solid fa-list"></i> Select Song</h2>
-                        </div>
-                        <div class="card-body">
-                            <select id="song-select-dropdown" class="song-select"></select>
-                        </div>
-                    </div>
-                    <!-- End New Dropdown Section -->
 
                     <div id="results">
                         <div id="loader" class="loader-overlay disabled">
@@ -173,26 +171,18 @@
             </footer>
         </div>
 
-        <script src="https://unpkg.com/wavesurfer.js"></script>
+        <!-- Template for Playback Controls -->
+        <template id="playback-controls">
+            <div class="playback-controls">
+                <button id="backward" class="control-button"><i class="fa-solid fa-backward-step"></i></button>
+                <button id="play" class="control-button primary"><i class="fa-solid fa-play"></i></button>
+                <button id="forward" class="control-button"><i class="fa-solid fa-forward-step"></i></button>
+                <button id="mute" class="control-button"><i class="fa-solid fa-volume-high"></i></button>
+            </div>
+        </template>
+
         <script src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.0/dist/essentia-wasm.web.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.0/dist/essentia.js-core.js"></script>
         <script src="src/main.js" type="module" async defer></script>
-
-        <template id="playback-controls">
-            <div class="playback-controls">
-                <button id="backward" class="control-button">
-                    <i class="fa-solid fa-backward"></i>
-                </button>
-                <button id="play" class="control-button primary">
-                    <i class="fa-solid fa-play"></i>
-                </button>
-                <button id="forward" class="control-button">
-                    <i class="fa-solid fa-forward"></i>
-                </button>
-                <button id="mute" class="control-button">
-                    <i class="fa-solid fa-volume-xmark"></i>
-                </button>
-            </div>
-        </template>
     </body>
 </html>

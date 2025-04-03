@@ -25,9 +25,10 @@ dropInput.addEventListener('change', () => {
 
 const dropArea = document.querySelector('#file-drop-area');
 const songSelectDropdown = document.querySelector('#song-select-dropdown');
-const songSelectorSection = document.querySelector('#song-selector-section');
+const songSelectionContainer = document.querySelector('#song-selection');
 const resultsSection = document.querySelector('#results');
 const loader = document.querySelector('#loader');
+const playerListContainer = document.querySelector('#player-list'); // Get ref to player list
 
 dropArea.addEventListener('dragover', (e) => { e.preventDefault(); });
 dropArea.addEventListener('drop', (e) => {
@@ -52,8 +53,15 @@ function processFileUpload(files) {
 
     toggleLoader(true, "Processing files..."); // Show loader for processing
 
-    // Clear previous results if any
+    // Clear previous results and players
     clearPreviousAnalysis();
+
+    // Create a single player container that we'll update as songs change
+    playerListContainer.innerHTML = `
+        <div id="active-player" class="song-player-item">
+            <!-- Player content will be inserted here when a song is selected -->
+        </div>
+    `;
 
     songAnalyses = Array.from(files).map((file, index) => ({
         id: index,
@@ -61,18 +69,20 @@ function processFileUpload(files) {
         fileName: file.name,
         audioBuffer: null,
         essentiaAnalysis: null,
-        analysisResults: new AnalysisResults(modelNames), // Each song gets its own results object
-        wavesurfer: null,
-        controls: null,
-        analysisPromise: null, // To track completion
+        analysisResults: new AnalysisResults(modelNames),
+        objectURL: null,
+        analysisPromise: null,
         analysisTimeoutTimer: null,
-        status: 'pending' // 'pending', 'processing', 'completed', 'error'
+        status: 'pending',
+        wavesurfer: null,
+        playbackControls: null,
+        isPlayerInitialized: false
     }));
 
     // Show song selector and results area (initially with loader)
-    songSelectorSection.style.display = 'block';
+    songSelectionContainer.style.display = 'block';
     resultsSection.style.display = 'block'; // Make sure results section is visible
-    toggleUploadDisplayHTML('hide'); // Hide the initial upload prompt
+    toggleUploadDisplayHTML('display'); // Show the player list container
 
     // Populate dropdown
     populateSongDropdown();
@@ -85,7 +95,6 @@ function processFileUpload(files) {
                 console.error(`Error processing song ${index} (${song.fileName}):`, err);
                 song.status = 'error';
                 handleAnalysisError(index, "File processing failed.");
-                // Update dropdown entry?
             });
     });
 
@@ -103,7 +112,7 @@ function processFileUpload(files) {
 function terminateAllWorkers() {
      console.log("Terminating all active workers...");
      // Terminate feature worker
-     if (featureWorker) {
+     if (typeof featureWorker !== 'undefined' && featureWorker) {
          try {
             featureWorker.terminate();
             console.log("Feature worker terminated.");
@@ -111,38 +120,57 @@ function terminateAllWorkers() {
          featureWorker = null;
      }
      // Terminate inference workers
-     Object.entries(inferenceWorkers).forEach(([modelName, workerInfo]) => {
-         if (workerInfo && workerInfo.worker && workerInfo.worker.terminate) {
-             try {
-                 workerInfo.worker.terminate();
-                 console.log(`Inference worker for ${modelName} terminated.`);
-             } catch (e) { console.error(`Error terminating inference worker ${modelName}:`, e); }
-         }
-     });
-     inferenceWorkers = {}; // Clear the registry
+     if (typeof inferenceWorkers !== 'undefined') {
+         Object.entries(inferenceWorkers).forEach(([modelName, workerInfo]) => {
+             if (workerInfo && workerInfo.worker && workerInfo.worker.terminate) {
+                 try {
+                     workerInfo.worker.terminate();
+                     console.log(`Inference worker for ${modelName} terminated.`);
+                 } catch (e) { console.error(`Error terminating inference worker ${modelName}:`, e); }
+             }
+         });
+         inferenceWorkers = {}; // Clear the registry
+     }
 }
 
 function clearPreviousAnalysis() {
     console.log("Clearing previous analysis state...");
-    // Stop and remove existing wavesurfer instances and controls
+    // Stop and remove existing players and release resources
     songAnalyses.forEach(song => {
+        // Clean up wavesurfer instance
         if (song.wavesurfer) {
             song.wavesurfer.destroy();
+            song.wavesurfer = null;
         }
-        if (song.controls) {
-            // Assuming controls don't need explicit destruction, otherwise add here
+        
+        // Clean up playback controls
+        if (song.playbackControls) {
+            song.playbackControls.destroy();
+            song.playbackControls = null;
         }
+        
+        // Revoke Object URL to free memory
+        if (song.objectURL) {
+             URL.revokeObjectURL(song.objectURL);
+             song.objectURL = null;
+        }
+        // Clear analysis timeout
         clearTimeout(song.analysisTimeoutTimer);
     });
     songAnalyses = [];
     currentSongIndex = -1;
     songSelectDropdown.innerHTML = ''; // Clear dropdown
-    songSelectorSection.style.display = 'none'; // Hide selector
+    songSelectionContainer.style.display = 'none'; // Hide selector
     // Reset UI elements in results section if needed (e.g., clear meters, BPM, key)
     const resultsViz = new AnalysisResults(modelNames); // Reset global viz state temporarily? Or handle in displaySongResults
     resultsViz.resetDisplay();
     // Terminate all active workers
     terminateAllWorkers();
+    // Clear player list container
+    if (playerListContainer) {
+         playerListContainer.innerHTML = '';
+         playerListContainer.style.display = 'none';
+    }
 }
 
 function populateSongDropdown() {
@@ -150,7 +178,7 @@ function populateSongDropdown() {
     songAnalyses.forEach((song, index) => {
         const option = document.createElement('option');
         option.value = index;
-        option.textContent = song.fileName;
+        option.textContent = song.fileName; // Just show the filename without "Play:" prefix
         songSelectDropdown.appendChild(option);
     });
 }
@@ -160,6 +188,12 @@ async function decodeFile(file, index) {
     const song = songAnalyses[index];
     try {
         const arrayBuffer = await file.arrayBuffer();
+
+        // Create Blob and Object URL for the audio player source
+        const audioBlob = new Blob([arrayBuffer], { type: file.type || 'audio/mpeg' }); // Use file type or default
+        song.objectURL = URL.createObjectURL(audioBlob);
+        
+        // Decode for analysis (still needed)
         await audioCtx.resume();
         song.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         console.info(`Done decoding audio for song ${index}!`);
@@ -193,93 +227,211 @@ async function decodeFile(file, index) {
     }
 }
 
+function initWaveSurfer(song, index) {
+    try {
+        // Check if wavesurfer instance already exists for this song
+        if (song.wavesurfer) {
+            return;
+        }
+        
+        // Create a WaveSurfer instance
+        const wavesurfer = WaveSurfer.create({
+            container: `#waveform-${index}`,
+            waveColor: '#c7d2fe',
+            progressColor: 'var(--waveform-progress-color)',
+            cursorColor: 'transparent',
+            barWidth: 2,
+            barRadius: 2,
+            barGap: 1,
+            height: 60,
+            responsive: true,
+            normalize: true,
+            backend: 'MediaElement'
+        });
+
+        // Load the audio
+        const audioElement = document.getElementById(`audio-player-${index}`);
+        if (audioElement) {
+            audioElement.src = song.objectURL;
+            wavesurfer.load(audioElement);
+        }
+
+        // Update time display - use the active-player container instead of song-player-${index}
+        const timeContainer = document.querySelector(`#active-player .time-display`);
+        const currentTimeElement = timeContainer.querySelector('.current-time');
+        const durationElement = timeContainer.querySelector('.duration');
+
+        wavesurfer.on('ready', function() {
+            const duration = wavesurfer.getDuration();
+            durationElement.textContent = formatTime(duration);
+            
+            // Initialize playback controls
+            const controlsContainer = document.querySelector(`#controls-${index}`);
+            if (controlsContainer) {
+                song.playbackControls = new PlaybackControls(wavesurfer, controlsContainer);
+            }
+        });
+
+        wavesurfer.on('audioprocess', function() {
+            const currentTime = wavesurfer.getCurrentTime();
+            currentTimeElement.textContent = formatTime(currentTime);
+        });
+
+        wavesurfer.on('seek', function() {
+            const currentTime = wavesurfer.getCurrentTime();
+            currentTimeElement.textContent = formatTime(currentTime);
+        });
+
+        song.wavesurfer = wavesurfer;
+
+    } catch (error) {
+        console.error(`Error initializing WaveSurfer for song ${index}:`, error);
+    }
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
 
 function displaySongResults(index) {
-    if (index === currentSongIndex || index < 0 || index >= songAnalyses.length) {
-        return; // No change or invalid index
+    if (index < 0 || index >= songAnalyses.length) {
+        return; 
     }
 
     const previousSong = songAnalyses[currentSongIndex];
     const newSong = songAnalyses[index];
 
-    console.log(`Switching display to song ${index}: ${newSong.fileName}`);
+    console.log(`Switching results display to song ${index}: ${newSong.fileName}`);
     currentSongIndex = index;
     songSelectDropdown.value = index; // Ensure dropdown reflects the change
 
-    // Destroy previous Wavesurfer instance if it exists and belongs to a different song
-    if (previousSong && previousSong.wavesurfer) {
-        console.log(`Destroying wavesurfer for song ${previousSong.id}`);
-        previousSong.wavesurfer.destroy();
-        previousSong.wavesurfer = null;
-        previousSong.controls = null; // Assuming controls are tied to wavesurfer instance
-        // Hide playback controls explicitly if needed
-        const container = document.getElementById('playback-controls-container');
-        if (container) container.innerHTML = '';
-    }
+    // Update the main results display (meters, key, bpm)
+    newSong.analysisResults.displayResults(newSong.essentiaAnalysis);
 
-     // Update the main results display (meters, key, bpm)
-     newSong.analysisResults.displayResults(newSong.essentiaAnalysis);
-
-
-    // Show loader only if this specific song is still processing
+    // Show loader only if this specific song is still processing analysis
     toggleLoader(newSong.status === 'processing', `Analyzing ${newSong.fileName}...`);
+    
+    // Clean up previous player if it exists
+    cleanupCurrentPlayer();
+    
+    // Create the player for the selected song - but keep it closed
+    createPlayerForSong(index);
+    
+    // Initialize the player but keep it closed (removed auto-open code)
+    setTimeout(() => {
+        // Make sure the wavesurfer instance is created
+        const song = songAnalyses[currentSongIndex];
+        if (song && !song.isPlayerInitialized && song.objectURL) {
+            console.log('Initializing waveform without opening player');
+            initWaveSurfer(song, index);
+            song.isPlayerInitialized = true;
+        }
+    }, 200);
+}
 
-    // Setup Wavesurfer for the new song if analysis is complete or errored (allow playback)
-    if (newSong.audioBuffer && !newSong.wavesurfer) {
-        console.log(`Setting up wavesurfer for song ${index}`);
-         // toggleUploadDisplayHTML should ideally return the container, not the wavesurfer instance
-         // Let's assume it prepares a div with id 'waveform' and 'playback-controls-container'
-         const vizElements = toggleUploadDisplayHTML('display'); // Ensure the waveform area is visible
-         const waveContainer = document.getElementById('waveform'); // Assuming viz.js creates this
-         const controlsContainer = document.getElementById('playback-controls-container'); // Assuming viz.js creates this
-
-         if (waveContainer && controlsContainer) {
-            try {
-                 newSong.wavesurfer = WaveSurfer.create({
-                     container: waveContainer,
-                     waveColor: 'rgb(200, 200, 200)',
-                     progressColor: 'rgb(100, 100, 100)',
-                     // Add other wavesurfer options as needed
-                 });
-
-                 // Use the already decoded audio buffer
-                 newSong.wavesurfer.loadDecodedBuffer(newSong.audioBuffer);
-
-                 newSong.controls = new PlaybackControls(newSong.wavesurfer, controlsContainer); // Pass container
-                 newSong.controls.toggleEnabled(true); // Enable controls immediately for playback
-
-                 newSong.wavesurfer.on('error', (err) => {
-                    console.error(`Wavesurfer error for song ${index}:`, err);
-                    // Handle wavesurfer errors, maybe disable controls or show message
-                 });
-
-            } catch (err) {
-                console.error(`Failed to create wavesurfer for song ${index}:`, err);
-                // Handle error (e.g., show message in UI)
-                if (controlsContainer) controlsContainer.innerHTML = '<p>Error loading audio player.</p>';
-            }
-
-         } else {
-             console.error("Required waveform or controls container not found after calling toggleUploadDisplayHTML.");
-         }
-
-    } else if (newSong.wavesurfer) {
-         // If wavesurfer already exists (e.g., user re-selects), ensure controls are enabled
-         if (newSong.controls) newSong.controls.toggleEnabled(true);
-    } else if (!newSong.audioBuffer && newSong.status !== 'error') {
-        console.warn(`Audio buffer not ready for song ${index}, cannot create wavesurfer yet.`);
-        // Loader should be visible in this case if status is 'processing'
-    }
-
-    // If the analysis failed for this song, show an indication
-    if (newSong.status === 'error') {
-        // Optionally display an error message specific to this song in the UI
-        console.warn(`Displaying results for song ${index} which encountered an error.`);
-        // Maybe disable controls or show default/error state in results viz
-        if(newSong.controls) newSong.controls.toggleEnabled(false);
+function cleanupCurrentPlayer() {
+    // Get all songs that have initialized players
+    songAnalyses.forEach(song => {
+        if (song.wavesurfer) {
+            song.wavesurfer.destroy();
+            song.wavesurfer = null;
+        }
+        
+        if (song.playbackControls) {
+            song.playbackControls.destroy();
+            song.playbackControls = null;
+        }
+        
+        song.isPlayerInitialized = false;
+    });
+    
+    // Reset the player container
+    const activePlayer = document.getElementById('active-player');
+    if (activePlayer) {
+        activePlayer.innerHTML = '';
     }
 }
 
+function createPlayerForSong(index) {
+    const song = songAnalyses[index];
+    if (!song) return;
+    
+    const activePlayer = document.getElementById('active-player');
+    if (!activePlayer) return;
+    
+    console.log(`Creating player for song ${index}: ${song.fileName}`);
+    
+    // Set the content for the active player
+    activePlayer.innerHTML = `
+        <div class="song-header" data-index="${index}">
+            <div class="song-title" title="${song.fileName}">Play Track</div>
+            <div class="toggle-player"><i class="fa-solid fa-chevron-down"></i></div>
+        </div>
+        <div class="player-content">
+            <div class="waveform-container">
+                <div id="waveform-${index}" class="player-wave"></div>
+            </div>
+            <div class="time-display">
+                <span class="current-time">0:00</span>
+                <span class="duration">0:00</span>
+            </div>
+            <div id="controls-${index}" class="controls-container"></div>
+            <audio id="audio-player-${index}" style="display:none;"></audio>
+        </div>
+    `;
+    
+    // Set up the toggle event
+    const songHeader = activePlayer.querySelector('.song-header');
+    songHeader.addEventListener('click', () => {
+        togglePlayer();
+    });
+    
+    // Initialize the player (but don't automatically open it)
+    if (song.objectURL && !song.isPlayerInitialized) {
+        console.log('Player created, will initialize wavesurfer');
+        setTimeout(() => {
+            initWaveSurfer(song, index);
+            song.isPlayerInitialized = true;
+        }, 50);
+    }
+}
+
+// Function to toggle the current player's expansion state
+function togglePlayer() {
+    const activePlayer = document.getElementById('active-player');
+    if (!activePlayer) return;
+    
+    const content = activePlayer.querySelector('.player-content');
+    const toggle = activePlayer.querySelector('.toggle-player');
+    
+    if (content.classList.contains('open')) {
+        // Close the player
+        content.classList.remove('open');
+        toggle.classList.remove('open');
+    } else {
+        // Open the player
+        content.classList.add('open');
+        toggle.classList.add('open');
+        
+        // Make sure the player is initialized
+        const song = songAnalyses[currentSongIndex];
+        if (song && !song.isPlayerInitialized && song.objectURL) {
+            console.log('Initializing waveform for song:', currentSongIndex);
+            initWaveSurfer(song, currentSongIndex);
+            song.isPlayerInitialized = true;
+        } else if (song && song.wavesurfer) {
+            // Force wavesurfer to redraw when container becomes visible
+            console.log('Forcing wavesurfer to redraw');
+            setTimeout(() => {
+                song.wavesurfer.drawBuffer();
+            }, 50);
+        }
+    }
+}
 
 function startAnalysisTimeout(index) {
     const song = songAnalyses[index];
@@ -315,9 +467,7 @@ function handleAnalysisError(index, message) {
         // Update results display to show error or default state
         song.analysisResults.displayErrorState(message); // Need to add this method to viz.js AnalysisResults
         // Try to enable playback controls anyway if buffer exists
-         if (song.controls) {
-            song.controls.toggleEnabled(!!song.audioBuffer);
-         } else if (song.audioBuffer) {
+         if (song.audioBuffer) {
              // Attempt to create player even on error if buffer is ready
              displaySongResults(index);
          }
@@ -618,14 +768,6 @@ function checkSongAnalysisCompletion(index) {
              toggleLoader(false);
              // Directly update the meters/values using the now-complete data
              song.analysisResults.displayResults(song.essentiaAnalysis);
-             // Ensure playback controls are enabled (displaySongResults might have done this, but let's be sure)
-             if (song.controls) {
-                 song.controls.toggleEnabled(true);
-             } else if (song.audioBuffer && !song.wavesurfer) {
-                 // If controls weren't created yet (e.g., very fast analysis), try creating player now
-                  console.log(`[Completion Check] Triggering player creation for song ${index}`);
-                 displaySongResults(index); // This will attempt to create wavesurfer/controls
-             }
         } else {
              // If not currently selected, ensure loader is hidden if user switches TO it later
              // (displaySongResults handles loader visibility based on status)
@@ -670,7 +812,7 @@ function toggleLoader(show, message = "Analyzing audio...") {
 
 // Initial UI state
 resultsSection.style.display = 'none';
-songSelectorSection.style.display = 'none';
+songSelectionContainer.style.display = 'none';
 toggleLoader(false);
 // Display initial upload state
 toggleUploadDisplayHTML('initial');
