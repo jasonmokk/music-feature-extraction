@@ -129,17 +129,18 @@ main {
 
 /* Cards */
 .card {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    box-shadow: var(--card-shadow);
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    margin-bottom: 1.5rem;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
 }
 
 .card-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background-color: rgba(0, 0, 0, 0.01);
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
     display: flex;
     align-items: center;
 }
@@ -155,7 +156,7 @@ main {
 }
 
 .card-body {
-    padding: 1.5rem;
+    padding: 20px;
 }
 
 .card-row {
@@ -176,18 +177,19 @@ main {
 }
 
 #file-drop-area {
-    border: 2px dashed var(--border);
+    border: 2px dashed #d1d5db;
     border-radius: 10px;
-    padding: 2rem;
+    padding: 1.75rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 0.75rem;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
-    min-height: 150px;
+    min-height: 140px;
+    background-color: #f9fafb;
 }
 
 #file-drop-area:hover {
@@ -215,6 +217,12 @@ main {
 /* Results area */
 #results {
     position: relative;
+    background-color: white;
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-top: 15px;
 }
 
 .loader-overlay {
@@ -266,13 +274,18 @@ main {
 .mood-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
 .mood-item, .dance-item, .metric-item {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 12px;
+    background-color: #f9fafb;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
 }
 
 .mood-icon, .dance-icon {
@@ -336,7 +349,8 @@ main {
 .metrics-container {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 16px;
+    margin-top: 20px;
 }
 
 .metric-icon {
@@ -506,22 +520,22 @@ footer {
 .song-select-container {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+    gap: 8px;
+    margin-bottom: 12px;
 }
 
 .song-select-label {
     font-weight: 500;
     color: var(--text-primary);
-    min-width: 90px;
+    min-width: 85px;
 }
 
 .song-select {
     flex: 1;
-    padding: 8px 12px;
+    padding: 8px 10px;
     border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-secondary);
+    border: 1px solid #d1d5db;
+    background-color: #f3f4f6;
     color: var(--text-primary);
     font-size: 14px;
     cursor: pointer;
@@ -530,13 +544,13 @@ footer {
 }
 
 .song-select:hover {
-    border-color: var(--primary-color-light);
+    border-color: #9ca3af;
 }
 
 .song-select:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    border-color: #6b7280;
+    box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
 }
 
 /* Player styling */
@@ -554,44 +568,48 @@ footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
-    background-color: var(--primary-color);
-    color: white;
+    padding: 10px 12px;
+    background-color: #f1f2f5;
+    color: #4b5563;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    border-radius: 6px;
+    border: 1px solid #e2e4e8;
 }
 
 .song-header:hover {
-    background-color: var(--primary-color-dark);
+    background-color: #e5e7eb;
 }
 
 .song-title {
-    font-weight: 500;
-    font-size: 14px;
+    font-weight: 600;
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: calc(100% - 30px);
+    color: #4b5563;
 }
 
 .toggle-player {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, background-color 0.2s ease;
 }
 
 .toggle-player.open {
     transform: rotate(180deg);
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
 .toggle-player i {
-    font-size: 12px;
+    font-size: 11px;
+    color: #4b5563;
 }
 
 .player-content {
@@ -603,7 +621,7 @@ footer {
 
 .player-content.open {
     max-height: 150px;
-    padding: 15px;
+    padding: 12px 10px;
 }
 
 /* Modern waveform player styling */
@@ -624,11 +642,12 @@ footer {
 }
 
 #active-player {
-    margin-top: 8px;
-    background-color: rgba(0, 0, 0, 0.02);
-    border-radius: 10px;
-    padding: 12px;
-    border: 1px solid var(--border);
+    margin-top: 6px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
 }
 
@@ -638,9 +657,10 @@ footer {
 
 .waveform-container {
     width: 100%;
-    height: 60px;
-    background-color: rgba(0, 0, 0, 0.02);
-    border-radius: 6px;
+    height: 55px;
+    background-color: #f3f4f6;
+    border-radius: 5px;
+    border: 1px solid #e5e7eb;
 }
 
 .player-content {
@@ -666,10 +686,10 @@ footer {
 .time-display {
     display: flex;
     justify-content: space-between;
-    color: var(--text-secondary);
+    color: #6b7280;
     font-size: 12px;
-    margin-top: 8px;
-    margin-bottom: 12px;
+    margin-top: 6px;
+    margin-bottom: 10px;
 }
 
 .current-time, .duration {
