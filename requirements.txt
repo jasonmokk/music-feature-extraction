@@ -1,9 +1,5 @@
-essentia-tensorflow>=2.1b6
-pandas>=2.0.0
-tqdm>=4.66.0
-numpy<2
-flask>=2.0.0
-werkzeug>=2.0.0
-matplotlib>=3.5.0
-seaborn>=0.11.0
-plotly>=5.3.0 
+essentia==2.1b6.dev294
+flask==2.3.3
+flask-cors==4.0.0
+numpy==1.26.0
+werkzeug==2.3.7 

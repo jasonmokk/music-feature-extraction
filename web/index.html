@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Music Analysis Pipeline</title>
+        <meta name="description" content="Advanced audio analysis for mood and instrument detection">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="style.css">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    </head>
+    <body>
+        <div class="app-container">
+            <header>
+                <div class="header-content">
+                    <div class="logo-container">
+                        <div class="logo"><i class="fa-solid fa-waveform"></i></div>
+                        <div class="title-container">
+                            <h1>Music Analysis Pipeline</h1>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main>
+                <div class="content-container">
+                    <div class="card upload-card">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-upload"></i> Audio Input</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="file-select-area">
+                                <div id="file-drop-area">
+                                    <div class="drop-icon">
+                                        <i class="fa-solid fa-music"></i>
+                                    </div>
+                                    <div class="drop-text">
+                                        <p class="primary-text">Drop your audio file here</p>
+                                        <p class="secondary-text">or click to browse</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="results">
+                        <div id="loader" class="loader-overlay disabled">
+                            <div class="loader-content">
+                                <div class="spinner"></div>
+                                <div class="loader-text">Analyzing audio...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="card results-card">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-brain"></i> Mood Analysis</h2>
+                            </div>
+                            <div class="card-body mood-container">
+                                <div id="mood_happy" class="mood-item">
+                                    <div class="mood-icon">😁</div>
+                                    <div class="mood-details">
+                                        <div class="mood-label">Happy</div>
+                                        <div class="meter-container">
+                                            <div class="classifier-meter" data-classifier="0%"></div>
+                                            <div class="meter-percentage">0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="mood_sad" class="mood-item">
+                                    <div class="mood-icon">😢</div>
+                                    <div class="mood-details">
+                                        <div class="mood-label">Sad</div>
+                                        <div class="meter-container">
+                                            <div class="classifier-meter" data-classifier="0%"></div>
+                                            <div class="meter-percentage">0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="mood_relaxed" class="mood-item">
+                                    <div class="mood-icon">😌</div>
+                                    <div class="mood-details">
+                                        <div class="mood-label">Relaxed</div>
+                                        <div class="meter-container">
+                                            <div class="classifier-meter" data-classifier="0%"></div>
+                                            <div class="meter-percentage">0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="mood_aggressive" class="mood-item">
+                                    <div class="mood-icon">👊</div>
+                                    <div class="mood-details">
+                                        <div class="mood-label">Aggressive</div>
+                                        <div class="meter-container">
+                                            <div class="classifier-meter" data-classifier="0%"></div>
+                                            <div class="meter-percentage">0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-row">
+                            <div class="card rhythm-card">
+                                <div class="card-header">
+                                    <h2><i class="fa-solid fa-music"></i> Dance & Rhythm</h2>
+                                </div>
+                                <div class="card-body">
+                                    <div id="danceability" class="dance-item">
+                                        <div class="dance-icon">💃</div>
+                                        <div class="dance-details">
+                                            <div class="dance-label">Danceability</div>
+                                            <div class="meter-container">
+                                                <div class="classifier-meter" data-classifier="0%"></div>
+                                                <div class="meter-percentage">0%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card metrics-card">
+                                <div class="card-header">
+                                    <h2><i class="fa-solid fa-chart-line"></i> Audio Metrics</h2>
+                                </div>
+                                <div class="card-body metrics-container">
+                                    <div id="bpm" class="metric-item">
+                                        <div class="metric-icon"><i class="fa-solid fa-heartbeat"></i></div>
+                                        <div class="metric-details">
+                                            <div class="metric-label">BPM</div>
+                                            <div id="bpm-value" class="metric-value">—</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="key" class="metric-item">
+                                        <div class="metric-icon"><i class="fa-solid fa-key"></i></div>
+                                        <div class="metric-details">
+                                            <div class="metric-label">Key</div>
+                                            <div id="key-value" class="metric-value">—</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            
+            <footer>
+                <div class="footer-content">
+                    <div class="copyright">
+                        <i class="fa-solid fa-waveform"></i> Jason Mok © 2025
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <script src="https://unpkg.com/wavesurfer.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.0/dist/essentia-wasm.web.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/essentia.js@0.1.0/dist/essentia.js-core.js"></script>
+        <script src="src/main.js" type="module" async defer></script>
+
+        <template id="playback-controls">
+            <div class="playback-controls">
+                <button id="backward" class="control-button">
+                    <i class="fa-solid fa-backward"></i>
+                </button>
+                <button id="play" class="control-button primary">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+                <button id="forward" class="control-button">
+                    <i class="fa-solid fa-forward"></i>
+                </button>
+                <button id="mute" class="control-button">
+                    <i class="fa-solid fa-volume-xmark"></i>
+                </button>
+            </div>
+        </template>
+    </body>
+</html>
