@@ -53,6 +53,9 @@ function processFileUpload(files) {
 
     toggleLoader(true, "Processing files..."); // Show loader for processing
 
+    // Switch from initial state to analysis state
+    document.querySelector('.content-container').classList.remove('initial-state');
+
     // Clear previous results and players
     clearPreviousAnalysis();
 
@@ -170,6 +173,11 @@ function clearPreviousAnalysis() {
     if (playerListContainer) {
          playerListContainer.innerHTML = '';
          playerListContainer.style.display = 'none';
+    }
+    
+    // Reset to initial state if no songs are present
+    if (songAnalyses.length === 0) {
+        document.querySelector('.content-container').classList.add('initial-state');
     }
 }
 

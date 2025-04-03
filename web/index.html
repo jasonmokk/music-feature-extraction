@@ -26,106 +26,60 @@
             </header>
 
             <main>
-                <div class="content-container">
-                    <div class="card upload-card">
-                        <div class="card-header">
-                            <h2><i class="fa-solid fa-upload"></i> Audio Input</h2>
-                        </div>
-                        <div class="card-body">
-                            <div id="file-select-area">
-                                <div id="file-drop-area">
-                                    <div class="drop-icon">
-                                        <i class="fa-solid fa-music"></i>
-                                    </div>
-                                    <div class="drop-text">
-                                        <p class="primary-text">Drop your audio file here</p>
-                                        <p class="secondary-text">or click to browse</p>
-                                    </div>
+                <div class="content-container initial-state">
+                    <!-- Left Column: Analysis Results -->
+                    <div class="left-column">
+                        <div id="results">
+                            <div id="loader" class="loader-overlay disabled">
+                                <div class="loader-content">
+                                    <div class="spinner"></div>
+                                    <div class="loader-text">Analyzing audio...</div>
                                 </div>
                             </div>
                             
-                            <!-- Song selection dropdown integrated into Audio Input -->
-                            <div id="song-selection" style="display: none; margin-top: 15px;">
-                                <div class="song-select-container">
-                                    <label for="song-select-dropdown" class="song-select-label">Select Track:</label>
-                                    <select id="song-select-dropdown" class="song-select"></select>
-                                </div>
-                            </div>
-                            
-                            <!-- Modernized player list container -->
-                            <div id="player-list" style="display: none; margin-top: 20px;"></div>
-                        </div>
-                    </div>
-
-                    <div id="results">
-                        <div id="loader" class="loader-overlay disabled">
-                            <div class="loader-content">
-                                <div class="spinner"></div>
-                                <div class="loader-text">Analyzing audio...</div>
-                            </div>
-                        </div>
-                        
-                        <div class="card results-card">
-                            <div class="card-header">
-                                <h2><i class="fa-solid fa-brain"></i> Mood Analysis</h2>
-                            </div>
-                            <div class="card-body mood-container">
-                                <div id="mood_happy" class="mood-item">
-                                    <div class="mood-icon">😁</div>
-                                    <div class="mood-details">
-                                        <div class="mood-label">Happy</div>
-                                        <div class="meter-container">
-                                            <div class="classifier-meter" data-classifier="0%"></div>
-                                            <div class="meter-percentage">0%</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div id="mood_sad" class="mood-item">
-                                    <div class="mood-icon">😢</div>
-                                    <div class="mood-details">
-                                        <div class="mood-label">Sad</div>
-                                        <div class="meter-container">
-                                            <div class="classifier-meter" data-classifier="0%"></div>
-                                            <div class="meter-percentage">0%</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div id="mood_relaxed" class="mood-item">
-                                    <div class="mood-icon">😌</div>
-                                    <div class="mood-details">
-                                        <div class="mood-label">Relaxed</div>
-                                        <div class="meter-container">
-                                            <div class="classifier-meter" data-classifier="0%"></div>
-                                            <div class="meter-percentage">0%</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div id="mood_aggressive" class="mood-item">
-                                    <div class="mood-icon">👊</div>
-                                    <div class="mood-details">
-                                        <div class="mood-label">Aggressive</div>
-                                        <div class="meter-container">
-                                            <div class="classifier-meter" data-classifier="0%"></div>
-                                            <div class="meter-percentage">0%</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card-row">
-                            <div class="card rhythm-card">
+                            <!-- Mood Analysis -->
+                            <div class="card results-card">
                                 <div class="card-header">
-                                    <h2><i class="fa-solid fa-music"></i> Dance & Rhythm</h2>
+                                    <h2><i class="fa-solid fa-brain"></i> Mood Analysis</h2>
                                 </div>
-                                <div class="card-body">
-                                    <div id="danceability" class="dance-item">
-                                        <div class="dance-icon">💃</div>
-                                        <div class="dance-details">
-                                            <div class="dance-label">Danceability</div>
+                                <div class="card-body mood-container">
+                                    <div id="mood_happy" class="mood-item">
+                                        <div class="mood-icon">😁</div>
+                                        <div class="mood-details">
+                                            <div class="mood-label">Happy</div>
+                                            <div class="meter-container">
+                                                <div class="classifier-meter" data-classifier="0%"></div>
+                                                <div class="meter-percentage">0%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="mood_sad" class="mood-item">
+                                        <div class="mood-icon">😢</div>
+                                        <div class="mood-details">
+                                            <div class="mood-label">Sad</div>
+                                            <div class="meter-container">
+                                                <div class="classifier-meter" data-classifier="0%"></div>
+                                                <div class="meter-percentage">0%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="mood_relaxed" class="mood-item">
+                                        <div class="mood-icon">😌</div>
+                                        <div class="mood-details">
+                                            <div class="mood-label">Relaxed</div>
+                                            <div class="meter-container">
+                                                <div class="classifier-meter" data-classifier="0%"></div>
+                                                <div class="meter-percentage">0%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="mood_aggressive" class="mood-item">
+                                        <div class="mood-icon">👊</div>
+                                        <div class="mood-details">
+                                            <div class="mood-label">Aggressive</div>
                                             <div class="meter-container">
                                                 <div class="classifier-meter" data-classifier="0%"></div>
                                                 <div class="meter-percentage">0%</div>
@@ -135,11 +89,23 @@
                                 </div>
                             </div>
                             
+                            <!-- Combined Dance & Metrics for space efficiency -->
                             <div class="card metrics-card">
                                 <div class="card-header">
                                     <h2><i class="fa-solid fa-chart-line"></i> Audio Metrics</h2>
                                 </div>
                                 <div class="card-body metrics-container">
+                                    <div id="danceability" class="metric-item">
+                                        <div class="metric-icon">💃</div>
+                                        <div class="metric-details">
+                                            <div class="metric-label">Danceability</div>
+                                            <div class="meter-container">
+                                                <div class="classifier-meter" data-classifier="0%"></div>
+                                                <div class="meter-percentage">0%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div id="bpm" class="metric-item">
                                         <div class="metric-icon"><i class="fa-solid fa-heartbeat"></i></div>
                                         <div class="metric-details">
@@ -156,6 +122,39 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: Audio Input & Player -->
+                    <div class="right-column">
+                        <div class="card upload-card">
+                            <div class="card-header">
+                                <h2><i class="fa-solid fa-upload"></i> Audio Input</h2>
+                            </div>
+                            <div class="card-body">
+                                <div id="file-select-area">
+                                    <div id="file-drop-area">
+                                        <div class="drop-icon">
+                                            <i class="fa-solid fa-music"></i>
+                                        </div>
+                                        <div class="drop-text">
+                                            <p class="primary-text">Drop your audio file here</p>
+                                            <p class="secondary-text">or click to browse</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Song selection dropdown -->
+                                <div id="song-selection" style="display: none; margin-top: 12px;">
+                                    <div class="song-select-container">
+                                        <label for="song-select-dropdown" class="song-select-label">Select Track:</label>
+                                        <select id="song-select-dropdown" class="song-select"></select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Player container -->
+                                <div id="player-list" style="display: none; margin-top: 12px;"></div>
                             </div>
                         </div>
                     </div>
