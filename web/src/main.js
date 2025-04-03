@@ -51,13 +51,18 @@ songSelectDropdown.addEventListener('change', (e) => {
 function processFileUpload(files) {
     if (!files.length) return;
 
-    toggleLoader(true, "Processing files..."); // Show loader for processing
-
-    // Switch from initial state to analysis state
+    console.log(`Processing ${files.length} files`);
+    
+    // Remove the initial state class to switch to the normal layout
     document.querySelector('.content-container').classList.remove('initial-state');
+    console.log('Removed initial-state class');
+
+    toggleLoader(true, "Processing files..."); // Show loader for processing
+    console.log('Showing loader');
 
     // Clear previous results and players
     clearPreviousAnalysis();
+    console.log('Cleared previous analysis');
 
     // Create a single player container that we'll update as songs change
     playerListContainer.innerHTML = `
@@ -65,6 +70,7 @@ function processFileUpload(files) {
             <!-- Player content will be inserted here when a song is selected -->
         </div>
     `;
+    console.log('Created player container');
 
     songAnalyses = Array.from(files).map((file, index) => ({
         id: index,
@@ -81,18 +87,26 @@ function processFileUpload(files) {
         playbackControls: null,
         isPlayerInitialized: false
     }));
+    console.log('Created song analysis objects:', songAnalyses.length);
 
     // Show song selector and results area (initially with loader)
     songSelectionContainer.style.display = 'block';
+    console.log('Showing song selection container');
+    
     resultsSection.style.display = 'block'; // Make sure results section is visible
+    console.log('Showing results section');
+    
     toggleUploadDisplayHTML('display'); // Show the player list container
+    console.log('Called toggleUploadDisplayHTML');
 
     // Populate dropdown
     populateSongDropdown();
+    console.log('Populated song dropdown');
 
     // Start decoding and analysis for all files
     songAnalyses.forEach((song, index) => {
         song.status = 'processing';
+        console.log(`Starting analysis for song ${index}: ${song.fileName}`);
         song.analysisPromise = decodeFile(song.file, index)
             .catch(err => {
                 console.error(`Error processing song ${index} (${song.fileName}):`, err);
@@ -103,7 +117,11 @@ function processFileUpload(files) {
 
     // Select the first song initially after a short delay to allow UI update
     if (songAnalyses.length > 0) {
-       setTimeout(() => displaySongResults(0), 100);
+       console.log('Setting timeout to display first song');
+       setTimeout(() => {
+         console.log('Displaying first song');
+         displaySongResults(0);
+       }, 100);
     } else {
          toggleLoader(false); // Hide loader if no files processed
     }
@@ -163,21 +181,18 @@ function clearPreviousAnalysis() {
     songAnalyses = [];
     currentSongIndex = -1;
     songSelectDropdown.innerHTML = ''; // Clear dropdown
-    songSelectionContainer.style.display = 'none'; // Hide selector
-    // Reset UI elements in results section if needed (e.g., clear meters, BPM, key)
-    const resultsViz = new AnalysisResults(modelNames); // Reset global viz state temporarily? Or handle in displaySongResults
+    
+    // Don't hide song selector here - we'll show it again right after in processFileUpload
+    // But reset UI elements in results section
+    const resultsViz = new AnalysisResults(modelNames); // Reset global viz state
     resultsViz.resetDisplay();
+    
     // Terminate all active workers
     terminateAllWorkers();
+    
     // Clear player list container
     if (playerListContainer) {
          playerListContainer.innerHTML = '';
-         playerListContainer.style.display = 'none';
-    }
-    
-    // Reset to initial state if no songs are present
-    if (songAnalyses.length === 0) {
-        document.querySelector('.content-container').classList.add('initial-state');
     }
 }
 
@@ -194,39 +209,58 @@ function populateSongDropdown() {
 
 async function decodeFile(file, index) {
     const song = songAnalyses[index];
+    console.log(`Starting decode for song ${index}: ${song.fileName}`);
+    
     try {
+        console.log(`Reading file as array buffer: ${file.name}`);
         const arrayBuffer = await file.arrayBuffer();
+        console.log(`Array buffer received for ${file.name}, size: ${arrayBuffer.byteLength} bytes`);
 
         // Create Blob and Object URL for the audio player source
         const audioBlob = new Blob([arrayBuffer], { type: file.type || 'audio/mpeg' }); // Use file type or default
         song.objectURL = URL.createObjectURL(audioBlob);
+        console.log(`Created object URL for ${file.name}`);
         
         // Decode for analysis (still needed)
+        console.log(`Resuming audio context and decoding audio data for ${file.name}`);
         await audioCtx.resume();
         song.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         console.info(`Done decoding audio for song ${index}!`);
 
         // Start analysis timeout for this specific file
         startAnalysisTimeout(index);
+        console.log(`Started analysis timeout for ${file.name}`);
 
+        console.log(`Preprocessing audio for ${file.name}`);
         const prepocessedAudio = preprocess(song.audioBuffer);
         await audioCtx.suspend(); // Suspend context after preprocessing
+        console.log(`Audio preprocessing complete for ${file.name}`);
 
         // Compute Key/BPM (can happen in parallel)
         if (essentia) {
+            console.log(`Computing key/BPM with Essentia for ${file.name}`);
             song.essentiaAnalysis = computeKeyBPM(prepocessedAudio);
+            console.log(`Key/BPM analysis complete for ${file.name}:`, song.essentiaAnalysis);
         } else {
             console.warn(`Essentia not loaded for song ${index}, skipping key/BPM analysis`);
             song.essentiaAnalysis = { keyData: { key: "?", scale: "?" }, bpm: 0 };
         }
 
         // Feature Extraction & Inference
+        console.log(`Shortening audio for feature extraction for ${file.name}`);
         let audioData = shortenAudio(prepocessedAudio, KEEP_PERCENTAGE, true);
+        console.log(`Triggering feature extraction for ${file.name}`);
         await triggerFeatureExtraction(audioData, index);
 
         // Note: Actual completion tracking needs refinement, likely within worker messages
         // For now, this promise resolves after *starting* the process
         console.log(`Started analysis pipeline for song ${index}`);
+        
+        // Ensure the results are displayed
+        if (index === currentSongIndex) {
+            console.log(`Refreshing results display for current song ${index}`);
+            displaySongResults(index);
+        }
 
     } catch (err) {
         console.error(`Error decoding or starting analysis for song ${index}:`, err);
@@ -317,8 +351,16 @@ function displaySongResults(index) {
     currentSongIndex = index;
     songSelectDropdown.value = index; // Ensure dropdown reflects the change
 
+    // Make sure results section is visible
+    resultsSection.style.display = 'block';
+    
     // Update the main results display (meters, key, bpm)
-    newSong.analysisResults.displayResults(newSong.essentiaAnalysis);
+    if (newSong.essentiaAnalysis) {
+        console.log('Displaying analysis results:', newSong.essentiaAnalysis);
+        newSong.analysisResults.displayResults(newSong.essentiaAnalysis);
+    } else {
+        console.log('No analysis results available yet for', newSong.fileName);
+    }
 
     // Show loader only if this specific song is still processing analysis
     toggleLoader(newSong.status === 'processing', `Analyzing ${newSong.fileName}...`);
@@ -519,10 +561,20 @@ function checkAllAnalysesCompletion() {
 function computeKeyBPM(audioSignal) {
     // This function remains largely the same but is now called per song
     try {
+        if (!essentia) {
+            console.warn("Essentia is not loaded, returning default values");
+            return {
+                keyData: { key: "?", scale: "?" },
+                bpm: 0
+            };
+        }
+        
+        console.log("Computing key/BPM with Essentia");
         let vectorSignal = essentia.arrayToVector(audioSignal);
         const keyData = essentia.KeyExtractor(vectorSignal, true, 4096, 4096, 12, 3500, 60, 25, 0.2, 'bgate', 16000, 0.0001, 440, 'cosine', 'hann');
         const bpm = essentia.PercivalBpmEstimator(vectorSignal, 1024, 2048, 128, 128, 210, 50, 16000).bpm;
         
+        console.log("Key/BPM computation complete:", { keyData, bpm });
         return {
             keyData: keyData,
             bpm: bpm
@@ -807,10 +859,14 @@ function toggleLoader(show, message = "Analyzing audio...") {
 }
 
 // --- Initialization ---
-        EssentiaWASM().then((wasmModule) => {
+let essentiaLoaded = false;
+
+// Load Essentia.js
+EssentiaWASM().then((wasmModule) => {
     essentia = new Essentia(wasmModule);
-    console.log("Essentia.js loaded");
-        }).catch(err => {
+    essentiaLoaded = true;
+    console.log("Essentia.js loaded successfully");
+}).catch(err => {
     console.error("Failed to load Essentia:", err);
     alert("Error loading audio analysis library (Essentia). Key/BPM features will be unavailable.");
     // Continue without essentia
@@ -822,6 +878,7 @@ function toggleLoader(show, message = "Analyzing audio...") {
 resultsSection.style.display = 'none';
 songSelectionContainer.style.display = 'none';
 toggleLoader(false);
+
 // Display initial upload state
 toggleUploadDisplayHTML('initial');
 
