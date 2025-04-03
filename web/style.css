@@ -466,3 +466,38 @@ footer {
         padding: 1.5rem 2rem;
     }
 }
+
+/* Song Selector Styles */
+.song-selector-card {
+    margin-bottom: 20px;
+}
+
+.song-select {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background-color);
+    color: var(--text-color-primary);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.song-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); /* Example focus style */
+}
+
+/* Ensure dropdown arrow is visible in dark mode */
+.song-select {
+    /* Add specific styling if needed for arrow visibility */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23a0aec0" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>'); /* Example: gray arrow */
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 16px 12px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}

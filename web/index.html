@@ -42,9 +42,23 @@
                                     </div>
                                 </div>
                             </div>
+                            <!-- Permanent placeholders for player -->
+                            <div id="waveform-container" style="margin-top: 15px;"></div> 
+                            <div id="playback-controls-container" style="margin-top: 10px;"></div>
                         </div>
                     </div>
                     
+                    <!-- New Dropdown Section -->
+                    <div class="card song-selector-card" id="song-selector-section" style="display: none;">
+                        <div class="card-header">
+                            <h2><i class="fa-solid fa-list"></i> Select Song</h2>
+                        </div>
+                        <div class="card-body">
+                            <select id="song-select-dropdown" class="song-select"></select>
+                        </div>
+                    </div>
+                    <!-- End New Dropdown Section -->
+
                     <div id="results">
                         <div id="loader" class="loader-overlay disabled">
                             <div class="loader-content">

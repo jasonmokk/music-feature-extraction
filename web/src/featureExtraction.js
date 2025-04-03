@@ -17,15 +17,17 @@ try {
     });
 }
 
-function outputFeatures(f) {
+function outputFeatures(f, songIndex) {
     postMessage({
-        features: f
+        features: f,
+        songIndex: songIndex
     });
 }
 
-function outputError(message) {
+function outputError(message, songIndex) {
     postMessage({
-        error: message
+        error: message,
+        songIndex: songIndex
     });
 }
 
@@ -53,21 +55,25 @@ function computeFeatures(audioData) {
 }
 
 onmessage = function listenToMainThread(msg) {
-    // listen for decoded audio
-    if (msg.data.audio) {
+    // listen for decoded audio tagged with songIndex
+    const { audio, songIndex } = msg.data;
+
+    if (audio && typeof songIndex !== 'undefined') {
         try {
-            console.log("From FE worker: I've got audio!");
-            const audio = new Float32Array(msg.data.audio);
-            
-            if (audio.length === 0) {
+            console.log(`From FE worker: Received audio for songIndex ${songIndex}`);
+            const audioFloat32 = new Float32Array(audio);
+
+            if (audioFloat32.length === 0) {
                 throw new Error("Empty audio buffer received");
             }
-            
-            const features = computeFeatures(audio);
-            outputFeatures(features);
+
+            const features = computeFeatures(audioFloat32);
+            outputFeatures(features, songIndex);
         } catch (err) {
-            console.error("Error in feature extraction worker:", err);
-            outputError("Feature extraction failed: " + err.message);
+            console.error(`Error in feature extraction worker for songIndex ${songIndex}:`, err);
+            outputError("Feature extraction failed: " + err.message, songIndex);
         }
+    } else {
+         console.warn("Feature worker received message without audio or songIndex:", msg.data);
     }
 }
