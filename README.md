@@ -153,12 +153,10 @@ Pre-trained models in the `models/` directory include:
 - Instrument detection
 - Mood & theme classification
 
-## **License**
-
-[Insert your license information here]
 
 ## **Acknowledgments**
 
 - Essentia team for their audio analysis tools
 - MTG-Jamendo dataset creators
+- Dr. Xi Kang at the Owen Graduate School of Management
 
