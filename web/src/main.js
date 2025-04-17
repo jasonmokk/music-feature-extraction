@@ -29,6 +29,7 @@ const songSelectionContainer = document.querySelector('#song-selection');
 const resultsSection = document.querySelector('#results');
 const loader = document.querySelector('#loader');
 const playerListContainer = document.querySelector('#player-list'); // Get ref to player list
+let downloadCsvButton = document.querySelector('#download-csv'); // Get download button
 
 dropArea.addEventListener('dragover', (e) => { e.preventDefault(); });
 dropArea.addEventListener('drop', (e) => {
@@ -47,6 +48,38 @@ songSelectDropdown.addEventListener('change', (e) => {
     }
 });
 
+// Function to ensure the download button has an event listener
+function setupDownloadButton() {
+    // Re-query the button in case it was recreated in the DOM
+    downloadCsvButton = document.querySelector('#download-csv');
+    
+    if (!downloadCsvButton) {
+        console.warn('Download CSV button not found in the DOM');
+        return;
+    }
+    
+    // Remove any existing listeners to prevent duplicates
+    downloadCsvButton.removeEventListener('click', downloadResultsAsCsv);
+    
+    // Add the event listener
+    downloadCsvButton.addEventListener('click', downloadResultsAsCsv);
+    
+    console.log('Download CSV button event listener attached');
+}
+
+// Add event listener for CSV download button
+if (downloadCsvButton) {
+    downloadCsvButton.addEventListener('click', () => {
+        console.log('Download button clicked');
+        downloadResultsAsCsv();
+    });
+    console.log('Initial download button event listener attached');
+} else {
+    console.warn('Download button not found during initial setup');
+}
+
+// Call setup during initialization
+document.addEventListener('DOMContentLoaded', setupDownloadButton);
 
 function processFileUpload(files) {
     if (!files.length) return;
@@ -380,6 +413,9 @@ function displaySongResults(index) {
             initWaveSurfer(song, index);
             song.isPlayerInitialized = true;
         }
+        
+        // Ensure download button is set up each time results are displayed
+        setupDownloadButton();
     }, 200);
 }
 
@@ -883,3 +919,135 @@ toggleLoader(false);
 toggleUploadDisplayHTML('initial');
 
 console.log("Application Initialized");
+
+// Function to generate and download CSV
+function downloadResultsAsCsv() {
+    console.log('Download CSV button clicked');
+    
+    // Debug song analysis state
+    debugSongAnalysesState();
+    
+    if (songAnalyses.length === 0) {
+        console.warn('No song analysis data available to download');
+        alert('No audio files have been analyzed yet. Please upload and analyze audio files first.');
+        return;
+    }
+
+    // Create CSV header row
+    let csvContent = 'Song Name,';
+    
+    // Add model names to header
+    modelNames.forEach(model => {
+        csvContent += `${formatModelName(model)},`;
+    });
+    
+    // Add BPM and Key to header
+    csvContent += 'BPM,Key\n';
+    
+    let addedRows = 0;
+    
+    // Add data for each song
+    songAnalyses.forEach(song => {
+        console.log(`Processing CSV data for song: ${song.fileName}, status: ${song.status}`);
+        
+        // Include all songs, even those with errors or still processing
+        // Add song name (escape commas and quotes in the filename)
+        csvContent += `"${song.fileName.replace(/"/g, '""')}",`;
+        
+        // Add results for each model
+        modelNames.forEach(model => {
+            let value = '0';
+            
+            if (song.analysisResults && song.analysisResults.results && 
+                song.analysisResults.results[model] && 
+                !song.analysisResults.results[model].isError) {
+                const predictions = song.analysisResults.results[model].predictions;
+                if (typeof predictions === 'number') {
+                    value = Math.round(predictions * 100);
+                } else if (Array.isArray(predictions) && predictions.length > 0) {
+                    value = Math.round(predictions[0] * 100);
+                }
+            }
+            
+            csvContent += `${value},`;
+        });
+        
+        // Add BPM and Key
+        let bpm = song.essentiaAnalysis && typeof song.essentiaAnalysis.bpm === 'number' ? 
+            Math.round(song.essentiaAnalysis.bpm) : '';
+        
+        let key = '';
+        if (song.essentiaAnalysis && song.essentiaAnalysis.keyData &&
+            typeof song.essentiaAnalysis.keyData.key === 'string' && 
+            song.essentiaAnalysis.keyData.key !== '?' &&
+            typeof song.essentiaAnalysis.keyData.scale === 'string') {
+            key = `${song.essentiaAnalysis.keyData.key} ${song.essentiaAnalysis.keyData.scale}`;
+        }
+        
+        csvContent += `${bpm},"${key}"\n`;
+        addedRows++;
+    });
+    
+    console.log(`CSV content generated with ${addedRows} rows`);
+    
+    if (addedRows === 0) {
+        alert('No results available to download.');
+        return;
+    }
+    
+    try {
+        // Create and trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'music_analysis_results.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        console.log('Triggering CSV download...');
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        console.log('CSV download complete');
+    } catch (error) {
+        console.error('Error downloading CSV:', error);
+        alert('Failed to download CSV: ' + error.message);
+    }
+}
+
+// Helper to format model names for CSV header
+function formatModelName(name) {
+    // Convert to Title Case and replace underscores with spaces
+    return name.split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+// Function to debug the state of songAnalyses
+function debugSongAnalysesState() {
+    console.log(`Total song analyses: ${songAnalyses.length}`);
+    
+    if (songAnalyses.length === 0) {
+        console.log('No songs have been analyzed yet.');
+        return;
+    }
+    
+    songAnalyses.forEach((song, index) => {
+        console.log(`Song ${index}: ${song.fileName}`);
+        console.log(`  Status: ${song.status}`);
+        console.log(`  Has audioBuffer: ${!!song.audioBuffer}`);
+        console.log(`  Has essentiaAnalysis: ${!!song.essentiaAnalysis}`);
+        
+        if (song.analysisResults) {
+            console.log(`  Results available for models:`);
+            modelNames.forEach(model => {
+                const hasResult = song.analysisResults.hasResult ? 
+                    song.analysisResults.hasResult(model) : 
+                    (song.analysisResults.results && song.analysisResults.results[model]);
+                console.log(`    - ${model}: ${hasResult ? 'Yes' : 'No'}`);
+            });
+        } else {
+            console.log(`  No analysis results object available`);
+        }
+    });
+}
