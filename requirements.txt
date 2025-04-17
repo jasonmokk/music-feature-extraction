@@ -1,4 +1,4 @@
-essentia==2.1b6.dev294
+essentia-tensorflow==2.1b6.dev1177
 flask==2.3.3
 flask-cors==4.0.0
 numpy==1.26.0
