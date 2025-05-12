@@ -38,7 +38,7 @@ music-feature-extraction/
 
 ## Requirements
 
-- **Python 3.8+**: For command-line scripts
+- **Python 3.12**: For command-line scripts
 - **TensorFlow**: For the pre-trained models
 - **Essentia**: Audio processing and feature extraction
 - **Modern Web Browser**: Chrome, Firefox, or Edge (for web interface)
@@ -55,7 +55,7 @@ music-feature-extraction/
 
 2. Create a Python virtual environment and install dependencies:
    ```
-   python -m venv venv
+   python3.12 -m venv venv
    source venv/bin/activate  # On Windows, use: venv\Scripts\activate
    pip install -r requirements.txt
    ```
