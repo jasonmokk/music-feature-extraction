@@ -5,6 +5,7 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 const KEEP_PERCENTAGE = 0.15; // keep only 15% of audio file
 const ANALYSIS_TIMEOUT = 30000; // 30 seconds timeout for analysis per file
+const BATCH_SIZE = 3; // Process 3 files at a time
 
 let essentia = null;
 let featureExtractionWorkerPool = []; // Pool of workers if needed, or manage one at a time
@@ -15,12 +16,30 @@ const modelNames = ['mood_happy' , 'mood_sad', 'mood_relaxed', 'mood_aggressive'
 let songAnalyses = [];
 let currentSongIndex = -1;
 
+// Add these constants at the top with other constants
+let currentBatchIndex = 0;
+let pendingFiles = [];
+let processedResults = [];
+
+// Add a global map to store song analysis by ID
+let songAnalysisMap = new Map();
+
 // UI Elements
 const dropInput = document.createElement('input');
 dropInput.setAttribute('type', 'file');
 dropInput.setAttribute('multiple', ''); // Allow multiple files
 dropInput.addEventListener('change', () => {
     processFileUpload(dropInput.files);
+});
+
+// Add a new folder input element
+const folderInput = document.createElement('input');
+folderInput.setAttribute('type', 'file');
+folderInput.setAttribute('webkitdirectory', ''); // Allow directory selection (Chrome, Safari, Edge)
+folderInput.setAttribute('directory', ''); // Firefox (though less supported)
+folderInput.setAttribute('multiple', ''); // Some browsers require this for folder selection
+folderInput.addEventListener('change', () => {
+    processFileUpload(folderInput.files);
 });
 
 const dropArea = document.querySelector('#file-drop-area');
@@ -38,7 +57,8 @@ dropArea.addEventListener('drop', (e) => {
     processFileUpload(files);
 });
 dropArea.addEventListener('click', () => {
-    dropInput.click();
+    // Show a menu with file or folder upload options
+    showUploadOptions();
 });
 
 songSelectDropdown.addEventListener('change', (e) => {
@@ -84,13 +104,24 @@ document.addEventListener('DOMContentLoaded', setupDownloadButton);
 function processFileUpload(files) {
     if (!files.length) return;
 
-    console.log(`Processing ${files.length} files`);
+    // Filter for audio files only
+    const audioFiles = Array.from(files).filter(file => 
+        file.type.startsWith('audio/') || file.name.toLowerCase().endsWith('.mp3') || 
+        file.name.toLowerCase().endsWith('.wav') || file.name.toLowerCase().endsWith('.ogg')
+    );
+    
+    if (audioFiles.length === 0) {
+        alert('No audio files found. Please upload MP3, WAV, or OGG files.');
+        return;
+    }
+
+    console.log(`Processing ${audioFiles.length} audio files out of ${files.length} total files`);
     
     // Remove the initial state class to switch to the normal layout
     document.querySelector('.content-container').classList.remove('initial-state');
     console.log('Removed initial-state class');
 
-    toggleLoader(true, "Processing files..."); // Show loader for processing
+    toggleLoader(true, `Preparing to process ${audioFiles.length} files...`); // Show loader for processing
     console.log('Showing loader');
 
     // Clear previous results and players
@@ -105,62 +136,24 @@ function processFileUpload(files) {
     `;
     console.log('Created player container');
 
-    songAnalyses = Array.from(files).map((file, index) => ({
-        id: index,
-        file: file,
-        fileName: file.name,
-        audioBuffer: null,
-        essentiaAnalysis: null,
-        analysisResults: new AnalysisResults(modelNames),
-        objectURL: null,
-        analysisPromise: null,
-        analysisTimeoutTimer: null,
-        status: 'pending',
-        wavesurfer: null,
-        playbackControls: null,
-        isPlayerInitialized: false
-    }));
-    console.log('Created song analysis objects:', songAnalyses.length);
+    // Initialize arrays for batch processing
+    pendingFiles = audioFiles;
+    processedResults = [];
+    currentBatchIndex = 0;
+    songAnalysisMap.clear(); // Clear the map
 
     // Show song selector and results area (initially with loader)
     songSelectionContainer.style.display = 'block';
     console.log('Showing song selection container');
     
-    resultsSection.style.display = 'block'; // Make sure results section is visible
+    resultsSection.style.display = 'block';
     console.log('Showing results section');
     
-    toggleUploadDisplayHTML('display'); // Show the player list container
+    toggleUploadDisplayHTML('display');
     console.log('Called toggleUploadDisplayHTML');
 
-    // Populate dropdown
-    populateSongDropdown();
-    console.log('Populated song dropdown');
-
-    // Start decoding and analysis for all files
-    songAnalyses.forEach((song, index) => {
-        song.status = 'processing';
-        console.log(`Starting analysis for song ${index}: ${song.fileName}`);
-        song.analysisPromise = decodeFile(song.file, index)
-            .catch(err => {
-                console.error(`Error processing song ${index} (${song.fileName}):`, err);
-                song.status = 'error';
-                handleAnalysisError(index, "File processing failed.");
-            });
-    });
-
-    // Select the first song initially after a short delay to allow UI update
-    if (songAnalyses.length > 0) {
-       console.log('Setting timeout to display first song');
-       setTimeout(() => {
-         console.log('Displaying first song');
-         displaySongResults(0);
-       }, 100);
-    } else {
-         toggleLoader(false); // Hide loader if no files processed
-    }
-
-    // Monitor all analyses completion
-    monitorAllAnalyses();
+    // Start processing the first batch
+    processNextBatch();
 }
 
 function terminateAllWorkers() {
@@ -241,8 +234,14 @@ function populateSongDropdown() {
 
 
 async function decodeFile(file, index) {
-    const song = songAnalyses[index];
-    console.log(`Starting decode for song ${index}: ${song.fileName}`);
+    // Get the song from our map instead of relying on songAnalyses array position
+    const song = songAnalysisMap.get(index);
+    if (!song) {
+        console.error(`Song with index ${index} not found in map.`);
+        return Promise.reject(new Error(`Song with index ${index} not found.`));
+    }
+
+    console.log(`Starting decode for song ${index}: ${song.fileName} (Batch: ${song.batchId})`);
     
     try {
         console.log(`Reading file as array buffer: ${file.name}`);
@@ -373,14 +372,15 @@ function formatTime(seconds) {
 }
 
 function displaySongResults(index) {
-    if (index < 0 || index >= songAnalyses.length) {
-        return; 
+    const song = songAnalysisMap.get(index);
+    if (!song) {
+        console.error(`Cannot display results for song ${index} - not found in map`);
+        return;
     }
 
-    const previousSong = songAnalyses[currentSongIndex];
-    const newSong = songAnalyses[index];
+    const previousSong = songAnalysisMap.get(currentSongIndex);
 
-    console.log(`Switching results display to song ${index}: ${newSong.fileName}`);
+    console.log(`Switching results display to song ${index}: ${song.fileName} (Batch: ${song.batchId})`);
     currentSongIndex = index;
     songSelectDropdown.value = index; // Ensure dropdown reflects the change
 
@@ -388,15 +388,15 @@ function displaySongResults(index) {
     resultsSection.style.display = 'block';
     
     // Update the main results display (meters, key, bpm)
-    if (newSong.essentiaAnalysis) {
-        console.log('Displaying analysis results:', newSong.essentiaAnalysis);
-        newSong.analysisResults.displayResults(newSong.essentiaAnalysis);
+    if (song.essentiaAnalysis) {
+        console.log('Displaying analysis results:', song.essentiaAnalysis);
+        song.analysisResults.displayResults(song.essentiaAnalysis);
     } else {
-        console.log('No analysis results available yet for', newSong.fileName);
+        console.log('No analysis results available yet for', song.fileName);
     }
 
     // Show loader only if this specific song is still processing analysis
-    toggleLoader(newSong.status === 'processing', `Analyzing ${newSong.fileName}...`);
+    toggleLoader(song.status === 'processing', `Analyzing ${song.fileName}...`);
     
     // Clean up previous player if it exists
     cleanupCurrentPlayer();
@@ -407,7 +407,7 @@ function displaySongResults(index) {
     // Initialize the player but keep it closed (removed auto-open code)
     setTimeout(() => {
         // Make sure the wavesurfer instance is created
-        const song = songAnalyses[currentSongIndex];
+        const song = songAnalysisMap.get(currentSongIndex);
         if (song && !song.isPlayerInitialized && song.objectURL) {
             console.log('Initializing waveform without opening player');
             initWaveSurfer(song, index);
@@ -504,7 +504,7 @@ function togglePlayer() {
         toggle.classList.add('open');
         
         // Make sure the player is initialized
-        const song = songAnalyses[currentSongIndex];
+        const song = songAnalysisMap.get(currentSongIndex);
         if (song && !song.isPlayerInitialized && song.objectURL) {
             console.log('Initializing waveform for song:', currentSongIndex);
             initWaveSurfer(song, currentSongIndex);
@@ -520,7 +520,9 @@ function togglePlayer() {
 }
 
 function startAnalysisTimeout(index) {
-    const song = songAnalyses[index];
+    const song = songAnalysisMap.get(index);
+    if (!song) return;
+    
     // Clear any existing timeout for this song
     if (song.analysisTimeoutTimer) clearTimeout(song.analysisTimeoutTimer);
     
@@ -534,9 +536,9 @@ function startAnalysisTimeout(index) {
 }
 
 function handleAnalysisError(index, message) {
-    if (index < 0 || index >= songAnalyses.length) return; // Invalid index
+    const song = songAnalysisMap.get(index);
+    if (!song) return; // Song not found
 
-    const song = songAnalyses[index];
     console.error(`Analysis Error for Song ${index} (${song.fileName}): ${message}`);
 
     // Clear timeout
@@ -743,22 +745,20 @@ function ensureInferenceWorker(modelName, index) {
                  if (error) {
                      console.error(`Model ${workerModelName} error for song ${songIndex}:`, error);
                      handleAnalysisError(songIndex, `Model ${workerModelName} inference failed: ${error}`);
-                     if (songAnalyses[songIndex]) { // Check if song analysis object still exists
-                         songAnalyses[songIndex].analysisResults.storeResult(workerModelName, [0.5], true); // Mark as error result
+                     if (songAnalysisMap.get(songIndex)) { // Check if song analysis object still exists
+                         songAnalysisMap.get(songIndex).analysisResults.storeResult(workerModelName, [0.5], true); // Mark as error result
                      }
                  } else if (predictions !== undefined) { // Check explicitly for predictions property
                      console.log(`Received ${workerModelName} predictions for song ${songIndex}: `, predictions);
-                     if (songAnalyses[songIndex]) { // Check if song analysis object still exists
-                         songAnalyses[songIndex].analysisResults.storeResult(workerModelName, predictions);
+                     if (songAnalysisMap.get(songIndex)) { // Check if song analysis object still exists
+                         songAnalysisMap.get(songIndex).analysisResults.storeResult(workerModelName, predictions);
                      }
                  } else {
                      console.warn(`Inference worker (${workerModelName}) sent unrecognised message type for song ${songIndex}:`, msg.data);
                  }
 
                  // Check if this song's analysis is complete after receiving result/error
-                 if (songAnalyses[songIndex]) {
-                     checkSongAnalysisCompletion(songIndex);
-                 }
+                 checkSongAnalysisCompletion(songIndex);
              };
 
              // --- Setup Error Handler --- 
@@ -791,8 +791,8 @@ function ensureInferenceWorker(modelName, index) {
         } catch (err) {
              console.error(`Error creating worker for model ${modelName}:`, err);
              handleAnalysisError(index, `Could not initialize model ${modelName}.`);
-             if (songAnalyses[index]) { // Check if song exists
-                 songAnalyses[index].analysisResults.storeResult(modelName, [0.5], true);
+             if (songAnalysisMap.get(index)) { // Check if song exists
+                 songAnalysisMap.get(index).analysisResults.storeResult(modelName, [0.5], true);
                  checkSongAnalysisCompletion(index);
              }
              return null; // Indicate worker creation failed
@@ -804,7 +804,7 @@ function ensureInferenceWorker(modelName, index) {
 
 function triggerInference(features, index) {
     console.log(`Triggering inference for all models for song ${index}`);
-    const song = songAnalyses[index]; // Get the song object
+    const song = songAnalysisMap.get(index); // Get the song object
 
     modelNames.forEach((n) => {
         const worker = ensureInferenceWorker(n, index); // This returns the worker instance or null
@@ -845,14 +845,14 @@ function triggerInference(features, index) {
 
 
 function checkSongAnalysisCompletion(index) {
-    const song = songAnalyses[index];
+    const song = songAnalysisMap.get(index);
     if (!song || song.status !== 'processing') return; // Check if song exists and is processing
 
     // Check if all models have returned a result (or errored) for this song
     const allModelsDone = modelNames.every(name => song.analysisResults.hasResult(name));
 
     if (allModelsDone) {
-        console.log(`All model inferences completed (or errored) for song ${index}`);
+        console.log(`All model inferences completed (or errored) for song ${index} (Batch: ${song.batchId})`);
         song.status = 'completed'; // Mark as completed (even if some models failed)
         clearTimeout(song.analysisTimeoutTimer); // Clear timeout as it finished
         song.analysisTimeoutTimer = null;
@@ -885,10 +885,22 @@ function checkSongAnalysisCompletion(index) {
 }
 
 
-function toggleLoader(show, message = "Analyzing audio...") {
+function toggleLoader(show, message = "Analyzing audio...", progress = -1) {
     if (show) {
         loader.querySelector('.loader-text').textContent = message;
         loader.classList.remove('disabled');
+        
+        // Update progress bar if provided
+        const progressBar = loader.querySelector('.progress-bar');
+        if (progressBar) {
+            if (progress >= 0 && progress <= 100) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.textContent = `${Math.round(progress)}%`;
+                progressBar.style.display = 'block';
+            } else {
+                progressBar.style.display = 'none';
+            }
+        }
     } else {
         loader.classList.add('disabled');
     }
@@ -1050,4 +1062,227 @@ function debugSongAnalysesState() {
             console.log(`  No analysis results object available`);
         }
     });
+}
+
+// Add new function for batch processing
+function processNextBatch() {
+    const batchStart = currentBatchIndex;
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, pendingFiles.length);
+    const currentBatch = pendingFiles.slice(batchStart, batchEnd);
+
+    if (currentBatch.length === 0) {
+        // All batches processed
+        console.log('All batches processed');
+        combineResults();
+        return;
+    }
+
+    // Calculate and show progress
+    const totalFiles = pendingFiles.length;
+    const processedCount = batchStart;
+    const progressPercentage = (processedCount / totalFiles) * 100;
+    
+    toggleLoader(
+        true, 
+        `Processing batch ${Math.floor(batchStart/BATCH_SIZE) + 1} of ${Math.ceil(totalFiles/BATCH_SIZE)} (${processedCount}/${totalFiles} files)`,
+        progressPercentage
+    );
+    
+    console.log(`Processing batch ${Math.floor(batchStart/BATCH_SIZE) + 1} of ${Math.ceil(pendingFiles.length/BATCH_SIZE)}`);
+
+    // Clear songAnalyses for the current batch
+    songAnalyses = [];
+
+    // Create song analysis objects for current batch
+    currentBatch.forEach((file, index) => {
+        const globalIndex = batchStart + index;
+        const song = {
+            id: globalIndex,
+            file: file,
+            fileName: file.name,
+            audioBuffer: null,
+            essentiaAnalysis: null,
+            analysisResults: new AnalysisResults(modelNames),
+            objectURL: null,
+            analysisPromise: null,
+            analysisTimeoutTimer: null,
+            status: 'pending',
+            wavesurfer: null,
+            playbackControls: null,
+            isPlayerInitialized: false,
+            batchId: Math.floor(batchStart/BATCH_SIZE) + 1 // Store which batch this belongs to
+        };
+        
+        // Store in both the current array and the global map
+        songAnalyses.push(song);
+        songAnalysisMap.set(globalIndex, song);
+    });
+
+    // Populate dropdown with all processed and current batch songs
+    populateSongDropdown();
+
+    // Process current batch
+    songAnalyses.forEach((song) => {
+        song.status = 'processing';
+        console.log(`Starting analysis for song ${song.id}: ${song.fileName} (Batch: ${song.batchId})`);
+        song.analysisPromise = decodeFile(song.file, song.id)
+            .catch(err => {
+                console.error(`Error processing song ${song.id} (${song.fileName}):`, err);
+                song.status = 'error';
+                handleAnalysisError(song.id, "File processing failed.");
+            });
+    });
+
+    // Monitor current batch completion
+    monitorBatchCompletion();
+}
+
+// Modify the monitorBatchCompletion function to update progress
+function monitorBatchCompletion() {
+    const checkInterval = setInterval(() => {
+        // Check if all songs in current batch are completed or errored
+        const allCompleted = songAnalyses.every(song => 
+            song.status === 'completed' || song.status === 'error'
+        );
+
+        if (allCompleted) {
+            clearInterval(checkInterval);
+            
+            // Store results from current batch
+            processedResults = processedResults.concat([...songAnalyses]);
+            
+            // Calculate and show progress
+            const totalFiles = pendingFiles.length;
+            const processedCount = Math.min(currentBatchIndex + BATCH_SIZE, totalFiles);
+            const progressPercentage = (processedCount / totalFiles) * 100;
+            
+            toggleLoader(
+                true, 
+                `Processed ${processedCount}/${totalFiles} files (${Math.round(progressPercentage)}%)`,
+                progressPercentage
+            );
+            
+            // Move to next batch
+            currentBatchIndex += BATCH_SIZE;
+            
+            // Clear current batch resources
+            songAnalyses.forEach(song => {
+                if (song.wavesurfer) {
+                    song.wavesurfer.destroy();
+                    song.wavesurfer = null;
+                }
+                if (song.playbackControls) {
+                    song.playbackControls.destroy();
+                    song.playbackControls = null;
+                }
+            });
+            
+            // Process next batch
+            processNextBatch();
+        } else {
+            // Update progress within the current batch
+            const completedInBatch = songAnalyses.filter(song => 
+                song.status === 'completed' || song.status === 'error'
+            ).length;
+            
+            const totalFiles = pendingFiles.length;
+            const prevBatchesCount = currentBatchIndex;
+            const currentBatchSize = songAnalyses.length;
+            const processedCount = prevBatchesCount + completedInBatch;
+            const progressPercentage = (processedCount / totalFiles) * 100;
+            
+            toggleLoader(
+                true, 
+                `Processing batch ${Math.floor(currentBatchIndex/BATCH_SIZE) + 1} of ${Math.ceil(totalFiles/BATCH_SIZE)} (${processedCount}/${totalFiles} files)`,
+                progressPercentage
+            );
+        }
+    }, 1000);
+}
+
+// Add new function to combine results
+function combineResults() {
+    console.log('Combining results from all batches');
+    
+    // Convert the Map to an array for the UI
+    songAnalyses = Array.from(songAnalysisMap.values());
+    
+    // Sort by ID to maintain the original order
+    songAnalyses.sort((a, b) => a.id - b.id);
+    
+    // Update UI with all results
+    populateSongDropdown();
+    
+    // Select first song if available
+    if (songAnalyses.length > 0) {
+        displaySongResults(0);
+    }
+    
+    toggleLoader(false);
+    console.log(`Completed processing ${songAnalyses.length} files`);
+    
+    // Log detailed results for verification
+    console.log('Final results summary:');
+    songAnalyses.forEach((song) => {
+        console.log(`Song ${song.id}: ${song.fileName} (Batch: ${song.batchId})`);
+        console.log(`  Status: ${song.status}`);
+        if (song.analysisResults && song.analysisResults.results) {
+            Object.entries(song.analysisResults.results).forEach(([model, result]) => {
+                console.log(`  ${model}: ${result.predictions}`);
+            });
+        }
+    });
+}
+
+// Add a new function to show upload options
+function showUploadOptions() {
+    // Create or get the upload options menu
+    let uploadOptions = document.getElementById('upload-options');
+    
+    if (!uploadOptions) {
+        uploadOptions = document.createElement('div');
+        uploadOptions.id = 'upload-options';
+        uploadOptions.className = 'upload-options-menu';
+        uploadOptions.innerHTML = `
+            <div class="upload-option" id="file-upload-option">
+                <i class="fa-solid fa-file-audio"></i> Upload Files
+            </div>
+            <div class="upload-option" id="folder-upload-option">
+                <i class="fa-solid fa-folder-open"></i> Upload Folder
+            </div>
+        `;
+        document.body.appendChild(uploadOptions);
+        
+        // Add event listeners
+        document.getElementById('file-upload-option').addEventListener('click', () => {
+            dropInput.click();
+            hideUploadOptions();
+        });
+        
+        document.getElementById('folder-upload-option').addEventListener('click', () => {
+            folderInput.click();
+            hideUploadOptions();
+        });
+        
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!uploadOptions.contains(e.target) && e.target !== dropArea) {
+                hideUploadOptions();
+            }
+        });
+    }
+    
+    // Position the menu relative to the drop area
+    const dropAreaRect = dropArea.getBoundingClientRect();
+    uploadOptions.style.top = `${dropAreaRect.bottom + window.scrollY}px`;
+    uploadOptions.style.left = `${dropAreaRect.left + window.scrollX}px`;
+    uploadOptions.style.display = 'block';
+}
+
+// Add function to hide upload options
+function hideUploadOptions() {
+    const uploadOptions = document.getElementById('upload-options');
+    if (uploadOptions) {
+        uploadOptions.style.display = 'none';
+    }
 }
