@@ -111,6 +111,24 @@ pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
 pip install tensorflow==2.8.0
 ```
 
-## Credits
+=======
+## **Results**
+
+All results are saved as CSV files in the `results/` directory for easy analysis and integration with other tools.
+
+## **Models**
+
+Pre-trained models in the `models/` directory include:
+- Discogs EfficientNet embeddings
+- Mood classifiers
+- Instrument detection
+- Mood & theme classification
+
+
+## **Acknowledgments**
+
+- Essentia team for their audio analysis tools
+- MTG-Jamendo dataset creators
+- Dr. Xi Kang at the Owen Graduate School of Management
 
 This project uses pre-trained models from the Music Technology Group (MTG) at Universitat Pompeu Fabra, Barcelona, specifically from their MTG-Jamendo dataset research. 
