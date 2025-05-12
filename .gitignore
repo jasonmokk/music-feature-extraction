@@ -48,3 +48,16 @@ Thumbs.db
 results/
 data/*.mp3
 !data/.gitkeep
+
+# Node.js dependencies
+node_modules/
+
+# Build output
+public/
+
+# Environment variables
+.env
+.env.local
+
+# Vercel
+.vercel

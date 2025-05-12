@@ -1,0 +1,16 @@
+{
+  "name": "music-feature-extraction",
+  "version": "1.0.0",
+  "description": "Web application for music analysis and feature extraction",
+  "scripts": {
+    "start": "serve web",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "fs-extra": "^11.1.1",
+    "serve": "^14.2.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 

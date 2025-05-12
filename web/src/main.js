@@ -5,7 +5,7 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
 const KEEP_PERCENTAGE = 0.15; // keep only 15% of audio file
 const ANALYSIS_TIMEOUT = 30000; // 30 seconds timeout for analysis per file
-const BATCH_SIZE = 3; // Process 3 files at a time
+const BATCH_SIZE = 20; // Process 20 files at a time (increased from 3)
 
 let essentia = null;
 let featureExtractionWorkerPool = []; // Pool of workers if needed, or manage one at a time
@@ -256,7 +256,7 @@ async function decodeFile(file, index) {
         // Decode for analysis (still needed)
         console.log(`Resuming audio context and decoding audio data for ${file.name}`);
         await audioCtx.resume();
-        song.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        song.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer.slice(0)); // Use slice to create a copy
         console.info(`Done decoding audio for song ${index}!`);
 
         // Start analysis timeout for this specific file
@@ -283,6 +283,10 @@ async function decodeFile(file, index) {
         let audioData = shortenAudio(prepocessedAudio, KEEP_PERCENTAGE, true);
         console.log(`Triggering feature extraction for ${file.name}`);
         await triggerFeatureExtraction(audioData, index);
+        
+        // Release large audio data after processing
+        audioData = null;
+        prepocessedAudio = null;
 
         // Note: Actual completion tracking needs refinement, likely within worker messages
         // For now, this promise resolves after *starting* the process
@@ -635,54 +639,72 @@ function computeKeyBPM(audioSignal) {
 let featureWorker = null; // Single reusable worker for now
 
 async function triggerFeatureExtraction(audioData, index) {
-    return new Promise((resolve, reject) => {
-         if (!featureWorker) {
-             try {
-                 featureWorker = new Worker('./src/featureExtraction.js');
-
-                 featureWorker.onmessage = function(msg) {
-                     const { features, error, songIndex } = msg.data;
-                     if (error) {
-                         console.error(`Feature extraction error for song ${songIndex}:`, error);
-                         handleAnalysisError(songIndex, `Feature extraction failed: ${error}`);
-                         // Potentially reject the promise associated with this songIndex?
-                     } else if (features && typeof songIndex !== 'undefined') {
-                         console.log(`Received features for song ${songIndex}`);
-                         triggerInference(features, songIndex);
-                     } else {
-                          console.warn("Feature worker sent unrecognised message:", msg.data);
-                     }
-                 };
-
-                 featureWorker.onerror = function(err) {
-                     // This is a general worker error, might affect multiple songs if requests are queued
-            console.error("Feature extraction worker error:", err);
-                     // Find which songs were processing and mark them as error? Complex.
-                     // For now, maybe alert the user about a general failure.
-                     alert("A critical error occurred during feature extraction. Please reload and try again.");
-                     // Mark all 'processing' songs as error?
-                     songAnalyses.forEach((song, idx) => {
-                         if(song.status === 'processing') handleAnalysisError(idx, "Feature extraction worker failed.");
-                     });
-                     featureWorker = null; // Discard broken worker
+    console.log(`Creating feature extraction worker for song ${index}`);
+    
+    // Get the song from our map
+    const song = songAnalysisMap.get(index);
+    if (!song) {
+        console.error(`Song with index ${index} not found in map.`);
+        return Promise.reject(new Error(`Song with index ${index} not found for feature extraction.`));
+    }
+    
+    try {
+        // Create a new worker for each song
+        const featureWorker = new Worker('src/featureExtraction.js');
+        
+        // Set up communication with the worker
+        featureWorker.onmessage = function(e) {
+            // Check for errors from worker
+            if (e.data.error) {
+                console.error(`Feature extraction error for song ${index}:`, e.data.error);
+                handleAnalysisError(index, e.data.error);
+                featureWorker.terminate();
+                return;
+            }
+            
+            // Get features from worker
+            const features = e.data.features;
+            const songIndex = e.data.songIndex;
+            
+            if (features && typeof songIndex !== 'undefined') {
+                console.info(`Received feature extraction results for song ${songIndex}`);
+                
+                // Process features with inference models
+                triggerInference(features, songIndex);
+                
+                // Terminate the worker now that it's done
+                featureWorker.terminate();
+            }
         };
+        
+        // Set timeout for worker operations
+        const workerTimeout = setTimeout(() => {
+            console.error(`Feature extraction worker timed out for song ${index}`);
+            handleAnalysisError(index, "Feature extraction timed out");
+            if (featureWorker) {
+                featureWorker.terminate();
+            }
+        }, ANALYSIS_TIMEOUT);
+        
+        // Handle worker errors
+        featureWorker.onerror = function(err) {
+            console.error(`Feature extraction worker error for song ${index}:`, err);
+            clearTimeout(workerTimeout);
+            handleAnalysisError(index, "Feature extraction worker failed");
+            featureWorker.terminate();
+        };
+        
+        // Send audio data to the worker
+        console.log(`Sending audio data to feature worker for song ${index}`);
+        featureWorker.postMessage({
+            audio: audioData,
+            songIndex: index
+        });
+        
     } catch (err) {
-        console.error("Error creating feature extraction worker:", err);
-                 handleAnalysisError(index, "Could not initialize feature extraction.");
-                 reject(err); // Reject the promise for the specific song
-                 return;
-             }
-         }
-
-         // Send audio data tagged with the song index
-         console.log(`Posting audio data to feature worker for song ${index}`);
-         featureWorker.postMessage({
-             audio: audioData.buffer,
-             songIndex: index
-         }, [audioData.buffer]); // Transfer buffer
-         audioData = null; // Clear reference
-         resolve(); // Resolve the promise once the message is sent
-    });
+        console.error(`Error creating or using feature extraction worker for song ${index}:`, err);
+        handleAnalysisError(index, "Failed to initialize feature extraction");
+    }
 }
 
 // Store inference workers AND their status: { worker: Worker, status: 'pending' | 'initializing' | 'ready' | 'failed' }
@@ -1165,20 +1187,45 @@ function monitorBatchCompletion() {
             // Move to next batch
             currentBatchIndex += BATCH_SIZE;
             
-            // Clear current batch resources
+            // Enhanced resource cleanup for better memory management
             songAnalyses.forEach(song => {
+                // Clean up wavesurfer instance
                 if (song.wavesurfer) {
                     song.wavesurfer.destroy();
                     song.wavesurfer = null;
                 }
+                
+                // Clean up playback controls
                 if (song.playbackControls) {
                     song.playbackControls.destroy();
                     song.playbackControls = null;
                 }
+                
+                // Free large buffers
+                if (song.audioBuffer) {
+                    song.audioBuffer = null;
+                }
+                
+                // Release object URL
+                if (song.objectURL) {
+                    URL.revokeObjectURL(song.objectURL);
+                    song.objectURL = null;
+                }
+                
+                // Only keep essential analysis results, free memory from large data
+                if (song.file) {
+                    song.file = null; // Release reference to the file
+                }
             });
             
-            // Process next batch
-            processNextBatch();
+            // Force garbage collection opportunity
+            songAnalyses = [];
+            
+            // Small delay before processing next batch to allow garbage collection
+            setTimeout(() => {
+                // Process next batch
+                processNextBatch();
+            }, 100);
         } else {
             // Update progress within the current batch
             const completedInBatch = songAnalyses.filter(song => 

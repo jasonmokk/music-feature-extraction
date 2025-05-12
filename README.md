@@ -1,134 +1,64 @@
-# Music Feature Extraction
+# Music Analysis Pipeline
 
-A comprehensive audio analysis toolkit with both command-line scripts and a web interface for audio feature extraction and music classification. The application detects instruments and mood/theme tags in music files.
+A web application for extracting features from music files, including mood analysis, danceability, BPM, and key detection.
 
 ## Features
 
-- **Instrument Detection**: Identifies up to 40 different instruments present in the audio
-- **Mood/Theme Classification**: Classifies tracks into 56 different mood/theme categories
-- **Command-line Scripts**: Run analysis directly from the terminal
-- **Web Interface**: Easy-to-use browser-based interface for uploading and analyzing audio files
-- **Real-time Analysis**: Process audio files directly in your browser
+- Upload individual files or entire folders of music
+- Batch processing of multiple audio files
+- Analyzes mood (happy, sad, relaxed, aggressive)
+- Detects audio metrics (danceability, BPM, key)
+- Download results as CSV
 
-## Project Structure
+## Deployment to Vercel
 
-```
-music-feature-extraction/
-├── models/                      # Pre-trained models
-│   ├── mtg_jamendo_instrument-discogs-effnet-1.pb
-│   └── mtg_jamendo_moodtheme-discogs-effnet-1.pb
-├── scripts/                     # Analysis scripts
-│   ├── classify_instruments.py
-│   └── classify_mood_theme.py
-├── src/                         # Source code
-│   ├── classifiers/             # Classifier modules
-│   │   ├── instrument_detector.py
-│   │   └── mood_theme_classifier.py
-│   ├── utils/                   # Utility functions
-│   │   ├── config.py
-│   │   └── paths.py
-│   ├── main.py                  # Main processing pipeline
-│   └── server.py                # Web server
-├── web/                         # Web interface
-│   ├── src/                     # JavaScript sources
-│   │   └── ...
-│   ├── models/                  # Client-side models (if any)
-│   ├── index.html               # Main HTML page
-│   └── style.css                # CSS styles
-├── data/                        # Directory for audio files to analyze
-├── results/                     # Analysis results are saved here
-├── requirements.txt             # Python dependencies
-└── README.md                    # This file
-```
+### Prerequisites
 
-## Requirements
+- [Vercel CLI](https://vercel.com/download)
+- [Node.js](https://nodejs.org/en/) (version 16 or later)
+- A Vercel account
 
-- **Python 3.12**: This project requires Python 3.12 or later
-- **TensorFlow**: Compatible with the pre-trained models
-- **Essentia**: For audio processing and feature extraction
+### Steps to Deploy
 
-## Installation
-
-1. Clone the repository:
+1. **Install Vercel CLI**:
    ```
-   git clone https://github.com/jasonmokk/music-feature-extraction.git
-   cd music-feature-extraction
+   npm install -g vercel
    ```
 
-2. Create a Python 3.12 virtual environment and install dependencies:
+2. **Login to Vercel**:
    ```
-   python3.12 -m venv venv
-   source venv/bin/activate  # On Windows, use: venv\Scripts\activate
-   pip install -r requirements.txt
+   vercel login
    ```
 
-## Usage
-
-### Command-line Scripts
-
-1. Place your audio files (MP3 format) in the `data/` directory.
-
-2. Run the mood/theme classification script:
+3. **Deploy to Vercel**:
    ```
-   python scripts/classify_mood_theme.py
+   vercel
    ```
 
-3. Run the instrument detection script:
+4. **For production deployment**:
    ```
-   python scripts/classify_instruments.py
-   ```
-
-4. Find results in the `results/` directory:
-   - `instrument_predictions.csv`: Contains instrument detection results
-   - `mtg_jamendo_moodtheme_predictions.csv`: Contains mood/theme classification results
-
-### Web Interface
-
-1. Start the server:
-   ```
-   python src/server.py
+   vercel --prod
    ```
 
-2. Open your web browser and navigate to:
+## Local Development
+
+1. **Install dependencies**:
    ```
-   http://localhost:5000
+   npm install
    ```
 
-3. Upload an audio file and analyze it using the web interface.
+2. **Start local server**:
+   ```
+   npm start
+   ```
 
-## Troubleshooting
+3. **Access the application**:
+   Open your browser and navigate to `http://localhost:3000`
 
-If you encounter TensorFlow model loading errors:
+## Technical Information
 
-```
-RuntimeError: Error while configuring TensorflowPredictEffnetDiscogs: TensorflowPredict: Error importing graph. Invalid GraphDef
-```
-
-Try installing a compatible version of TensorFlow:
-
-```
-pip uninstall -y tensorflow tensorflow-cpu tensorflow-gpu
-pip install tensorflow==2.8.0
-```
-
-=======
-## **Results**
-
-All results are saved as CSV files in the `results/` directory for easy analysis and integration with other tools.
-
-## **Models**
-
-Pre-trained models in the `models/` directory include:
-- Discogs EfficientNet embeddings
-- Mood classifiers
-- Instrument detection
-- Mood & theme classification
-
-
-## **Acknowledgments**
-
-- Essentia team for their audio analysis tools
-- MTG-Jamendo dataset creators
-- Dr. Xi Kang at the Owen Graduate School of Management
-
-This project uses pre-trained models from the Music Technology Group (MTG) at Universitat Pompeu Fabra, Barcelona, specifically from their MTG-Jamendo dataset research. 
+The application uses:
+- Web Audio API for audio processing
+- Essentia.js for audio feature extraction
+- TensorFlow.js for machine learning inference
+- Web Workers for parallel processing
