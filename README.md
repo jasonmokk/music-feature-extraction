@@ -51,7 +51,7 @@ music-feature-extraction/
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/music-feature-extraction.git
+   git clone https://github.com/jasonmokk/music-feature-extraction.git
    cd music-feature-extraction
    ```
 
