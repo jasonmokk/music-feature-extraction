@@ -885,3 +885,61 @@ audio {
 .download-button i {
     font-size: 16px;
 }
+
+/* Add progress bar styles */
+.progress-container {
+    width: 250px;
+    height: 20px;
+    background-color: #f3f4f6;
+    border-radius: 10px;
+    margin-top: 15px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius: 10px;
+    color: white;
+    text-align: center;
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 600;
+    transition: width 0.5s ease;
+}
+
+/* Upload options menu styles */
+.upload-options-menu {
+    position: absolute;
+    z-index: 1000;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    display: none;
+    width: 180px;
+}
+
+.upload-option {
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.upload-option:hover {
+    background-color: #f9fafb;
+}
+
+.upload-option:active {
+    background-color: #f3f4f6;
+}
+
+.upload-option i {
+    color: var(--primary);
+    font-size: 16px;
+}
